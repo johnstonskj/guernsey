@@ -33,6 +33,9 @@ The following example demonstrates the basic addition of the
   namespaces.add_filter(LoggingFilter('TestFilterLogging'))
   namespaces.accept('*/xml').get()
  
+.. autoclass:: guernsey.filters.ContentMd5Filter
+   :members:
+
 .. autoclass:: guernsey.filters.GzipContentEncodingFilter
    :members:
 

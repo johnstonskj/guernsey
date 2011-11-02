@@ -1,12 +1,47 @@
-import logging
+import gzip, logging, hashlib, StringIO
 
 from guernsey import ClientFilter
 
 class GzipContentEncodingFilter(ClientFilter):
-    """ TBD
+    """ This filter does two things, on the request side it will add the
+        standard HTTP ``Accept-Encoding`` header with the value ``gzip``.
+        The result is that a server should respond with a compressed entity
+        and the response header ``Content-Encoding`` also set to ``gzip``.
+        If the response does include the content encoding header the 
+        filter will uncompress the data and replace the ``entity`` value
+        in the :class:`ClientResponse` object accordingly.
     """
     def handle(self, client_request):
-        return self.response
+        client_request.resource.headers['accept-encoding'] = 'gzip'
+        client_response = client_request.next_filter(self).handle(client_request)
+        if client_response.headers['content-encoding'] == 'gzip':
+            data = StringIO.StringIO(client_response.entity)
+            encoded = gzip.GzipFile(fileobj=data, mode='rb')
+            entity = encoded.read()
+            encoded.close()
+            client_response.entity = entity
+        return client_response
+
+class ContentMd5Filter(ClientFilter):
+    """ This filter does two things, on the request side, if an entity is 
+        present it will calculate an MD5 hash for the entity and include
+        a ``Content-MD5`` HTTP header. On the response side, if the response
+        includes this header the filter will calculate a new hash of the 
+        entity it has been given and will compare the two values. If the 
+        values do not match it will raise a :class:`ValueError` exception.
+    """
+    def handle(self, client_request):
+        if not client_request.entity is None:
+            hash = hashlib.md5()
+            hash.update(client_request.entity)
+            client_request.add_header('Content-MD5', hash.hexdigest())
+        client_response = client_request.next_filter(self).handle(client_request)
+        if not client_response.headers['content-md5'] is None:
+            hash = hashlib.md5()
+            hash.update(client_response.entity)
+            if hash.hexdigest() != client_response.headers['content-md5']:
+                raise ValueError('MD5 hash mimatch')
+        return client_response
 
 class LoggingFilter(ClientFilter):
     """ This filter will log requests and responses, it uses the standard
