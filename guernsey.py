@@ -49,7 +49,8 @@ class ClientRequest(object):
     pass
 
 class ClientResponse(object):
-    def __init__(self, response, client):
+    def __init__(self, resource, response, client):
+        self.resource = resource
         self.client = client
         self.entity = response.read()
         self.url = response.geturl()
@@ -165,7 +166,7 @@ class WebResource(object):
             request.add_header(k, v)
         try:
             response = urllib2.urlopen(request)
-        except URLError, e:
+        except urllib2.URLError, e:
             if hasattr(e, 'reason'):
                 print 'We failed to reach a server.'
                 print 'Reason: ', e.reason
@@ -174,7 +175,7 @@ class WebResource(object):
                 print 'Error code: ', e.code
             return None
         else:
-            return ClientResponse(response, self.client)
+            return ClientResponse(self, response, self.client)
 
     def add_filter(self, filter):
         if not self.is_filter_present(filter):

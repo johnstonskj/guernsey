@@ -10,12 +10,7 @@ class TestMethodChaining(unittest.TestCase):
         print r.debug()
 
     def testServiceCall(self):
-        c = Client.create()
-        r = c.resource("http://rsp-core-services-na.amazon.com/services/marketplaces").accept("application/json")
-        v = r.get()
-        print v.entity
-        print v.url
-        print str(v.status) + " " + v.reason_phrase
-        print v.headers
-        print v.parsed_entity
-
+        client = Client.create()
+        namespaces = client.resource('http://www.thomas-bayer.com/sqlrest/').accept('*/xml').get()
+        customers = namespaces.resource.path('CUSTOMERS/').accept('*/xml').get()
+        customer = customers.resource.path('../CUSTOMER/22022010').accept('*/xml').get()
