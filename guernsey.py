@@ -25,8 +25,16 @@ class RequestWithMethod(urllib2.Request):
         return self._method
 
 class Client(object):
-
+    """ This is the root object that a REST client interacts with, it is
+        responsible for setting up the connection environment and holds
+        shared properties used by resource actions. Instances should only
+        be created with the :py:func:`create` class method.
+    """
     def __init__(self, config):
+        """ Client(config)
+            A caller should not instantiate a Client object directly, 
+            they should only use Client.create()
+        """
         if type(config) == types.DictType:
             self.config = config
         else:
@@ -34,15 +42,26 @@ class Client(object):
         self.default_filters = []
 
     def resource(self, url):
+        """ resource(url) -> WebResource
+            This will construct a new :class:`WebResource` with the specified URL.
+        """
         return WebResource(url, self)
 
     def parse_http_date(self, s):
+        """ parse_http_date(string) -> datetime
+            Return a datetime value parsed from the standard HTTP 
+            Date/Time representation.
+        """
         if s is None:
             return None
         return datetime(*parsedate(s)[:6])
 
     @classmethod
     def create(cls, config=None):
+        """ Client.create(config) -> client
+            Create a new client instance, this is the primary entry point
+            for the library.
+        """
         return Client(config)
 
 class ClientRequest(object):
@@ -158,6 +177,7 @@ class WebResource(object):
         return self.execute('OPTIONS')
 
     def execute(self, method):
+        # TODO: process filters
         if method in ['GET', 'POST']:
             request = urllib2.Request(url=self.url, data=self.req_entity)
         else:
