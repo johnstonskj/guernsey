@@ -34,3 +34,7 @@ repository, as shown below.
 
   $ git clone https://code.google.com/p/guernsey/
 
+You can also run all the test cases (and yes, I need more) from
+setuptools also.
+
+  $ python setup.py test

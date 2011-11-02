@@ -8,6 +8,9 @@ Introduction...
 Standard Filters
 ****************
 
-.. autoclass:: guernsey.filters.LastClientFilter
+.. autoclass:: guernsey.filters.LoggingFilter
+   :members:
+
+.. autoclass:: guernsey.filters.GzipContentEncodingFilter
    :members:
 

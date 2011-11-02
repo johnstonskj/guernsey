@@ -30,8 +30,8 @@ class Client(object):
         shared properties used by resource actions. Instances should only
         be created with the :py:func:`create` class method.
     """
-    def __init__(self, config):
-        """ Client(config)
+    def __init__(self, config, default_filters):
+        """ Client(config, default_filters)
             A caller should not instantiate a Client object directly, 
             they should only use Client.create()
         """
@@ -39,7 +39,11 @@ class Client(object):
             self.config = config
         else:
             self.config = {}
-        self.default_filters = []
+        if type(default_filters) == types.ListType:
+            self.default_filters = default_filters
+        else:
+            self.default_filters = []
+        self.actual_client = ExecClientFilter()
 
     def resource(self, url):
         """ resource(url) -> WebResource
@@ -57,17 +61,12 @@ class Client(object):
         return datetime(*parsedate(s)[:6])
 
     @classmethod
-    def create(cls, config=None):
-        """ Client.create(config) -> Client
+    def create(cls, config=None, default_filters=None):
+        """ Client.create(config, default_filters) -> Client
             Create a new client instance, this is the primary entry point
             for the library.
         """
-        return Client(config)
-
-class ClientRequest(object):
-    """ TBD
-    """
-    pass
+        return Client(config, default_filters)
 
 class ClientResponse(object):
     """ This represents the response from a server based on some request.
@@ -120,14 +119,6 @@ class ClientResponse(object):
             self.parsed_entity = json.loads(self.entity)
         else:
             self.parsed_entity = None
-
-class ClientFilter(object):
-    """ TBD
-    """
-    def handle(self, client_request, next_filter):
-        """ handle(client_request, next_filter) -> ClientResponse
-        """
-        return None
 
 class WebResource(object):
     """ This is the primary class used to represent a REST resource which a 
@@ -228,7 +219,8 @@ class WebResource(object):
     def get(self):
         """ get() -> ClientResponse
         """
-        return self.execute('GET')
+        request = ClientRequest(self, 'GET')
+        return self.handle(request)
 
     def head(self):
         """ head() -> ClientResponse
@@ -236,7 +228,7 @@ class WebResource(object):
         return self.execute('HEAD')
 
     def put(self, entity=None):
-        """ put(entity=Nont) -> ClientResponse
+        """ put(entity=None) -> ClientResponse
         """
         self.req_entity = entity
         return self.execute('PUT')
@@ -260,45 +252,24 @@ class WebResource(object):
     def handle(self, client_request):
         """ handle(client_request) -> ClientResponse
         """
-        pass
-
-    def execute(self, method):
-        """ execute(method) -> ClientResponse
-        """
-        # TODO: process filters
-        if method in ['GET', 'POST']:
-            request = urllib2.Request(url=self.url, data=self.req_entity)
-        else:
-            request = RequestWithMethod(method, url=self.url, data=self.req_entity)
-        for k, v in self.headers.iteritems():
-            request.add_header(k, v)
-        try:
-            response = urllib2.urlopen(request)
-        except urllib2.URLError, e:
-            if hasattr(e, 'reason'):
-                print 'We failed to reach a server.'
-                print 'Reason: ', e.reason
-            elif hasattr(e, 'code'):
-                print 'The server couldn\'t fulfill the request.'
-                print 'Error code: ', e.code
-            return None
-        else:
-            return ClientResponse(self, response, self.client)
+        client_request.set_filters(self.filters + [self.client.actual_client]);
+        final_response = client_request.filters[0].handle(client_request)
+        return final_response
 
     def add_filter(self, filter):
         """ add_filter(filter) -> webResource
         """
         if not self.is_filter_present(filter):
-            self.filters.append(filter)
+            self.filters.insert(0, filter)
         return self
 
-    def get_head_handler(self):
-        """ get_head_handler() -> ClientFilter
+    def head_filter(self):
+        """ head_filter() -> ClientFilter
         """
         if len(self.filters) > 0:
             return self.filters[0]
         else:
-            return None
+            return self.client.default_filter
 
     def is_filter_present(self, filter):
         """ is_filter_present(filter) -> boolean
@@ -319,4 +290,84 @@ class WebResource(object):
         return "<Web Resource %s>" % self.url
 
 
+class ClientRequest(object):
+    """ This represents the request to be made to the REST service.
+
+        The class supports the following data members.
+
+        * ``method`` - the HTTP method to use for this request.
+        * ``url`` - the request URL.
+        * ``resource`` - the originating resource itself.
+    """
+    def __init__(self, resource, method):
+        """ ClientRequest(resource, method) -> ClientRequest
+        """
+        self.resource = resource
+        self.method = method
+        self.url = resource.url
+        self.filters = []
+
+    def set_filters(self, filters):
+        self.filters = filters
+
+    def next_filter(self, filter):
+        """ next_filter(filter) -> ClientFilter
+            This will return the next filter, after ``filter``,  in the
+            filter chain for this request. Note that the filter chain
+            is copied from the resource when the request is created to
+            ensure it cannot be changed.
+        """
+        next = self.filters.index(filter)+1
+        if next > len(self.filters):
+            return self.client.default_filter
+        else:
+            return self.filters[next]
+
+class ClientFilter(object):
+    """ A Filter can be associated with a :class:`WebResource` object and
+        will be called for each request made against the resource. The
+        pattern is that the calls are nested, so the first filter has
+        a chance to modify the request object before invoking the next
+        filter in the chain which returns its response. The response may
+        then be modified before returning to the previous filter. This 
+        model allows for a single filter to affect both request and 
+        response while ensuring it is placed at the same location in the
+        chain for both operations.
+    """
+    def handle(self, client_request):
+        """ handle(client_request) -> ClientResponse
+            Process the request and response as you need to. You must
+            ensure that you call ``handle()`` on the next filter in 
+            the chain from ``client_request.next_filter(self)`` so that
+            the chain remains unbroken.
+        """
+        return client_request.next_filter(self).handle(client_request)
+
+class ExecClientFilter(ClientFilter):
+    """ This class actually implements the HTTP client itself, it is
+        styled as a filter and guaranteed to be the last filter executed
+        as it does not pass on the request to any next filter.
+    """
+    def handle(self, client_request):
+        """ handle(client_request) -> ClientResponse
+            This is where the real HTTP stuff happens.
+        """ 
+        if client_request.method in ['GET', 'POST']:
+            request = urllib2.Request(url=client_request.url, data=client_request.resource.req_entity)
+        else:
+            request = RequestWithMethod(client_request.method, url=client_request.url, data=client_request.resource.req_entity)
+        for k, v in client_request.resource.headers.iteritems():
+            request.add_header(k, v)
+        try:
+            response = urllib2.urlopen(request)
+        except urllib2.URLError, e:
+            if hasattr(e, 'reason'):
+                print 'We failed to reach a server.'
+                print 'Reason: ', e.reason
+            elif hasattr(e, 'code'):
+                print 'The server couldn\'t fulfill the request.'
+                print 'Error code: ', e.code
+            return None
+        else:
+            return ClientResponse(client_request.resource, response, client_request.resource.client)
 

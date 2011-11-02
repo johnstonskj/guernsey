@@ -63,6 +63,29 @@ allow components to amend the request and response for any
 is used. The classes below are the primary API for implementing
 a new filter and receiving the request itself for processing.
 
+The pattern for implementing a filter is::
+
+  class MyFilter(ClientFilter):
+
+      def handle(self, client_request):
+          client_request = client_request.add_header('Accept-Encoding', 'GZip')
+          client_response = client_request.next_filter(self).handle(client_request)
+          if client.response.encoding == 'gzip':
+              self.decode_gzip(client_response)
+          return client_response
+
+#. First, perform any modification on the request itself, in this
+   case add a new request header.
+#. Invoke the next handler in the chain, in this case by calling
+   the ``next_handler`` method on the :class:`ClientRequest`.
+#. Now process any information in the response, modifying it as
+   necessary.
+#. Finally, return the response object to the previous handler
+   in the chain.
+
+Filters are added and removed from a particular :class:`WebResource`
+using the ``add_filter`` and ``remove_filter`` methods. Additionally
+a resource will have a pre-configured list of filters when constructed.
 
 See also the :doc:`filters` topic for documentation on standard
 filters..
