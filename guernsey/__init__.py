@@ -58,17 +58,46 @@ class Client(object):
 
     @classmethod
     def create(cls, config=None):
-        """ Client.create(config) -> client
+        """ Client.create(config) -> Client
             Create a new client instance, this is the primary entry point
             for the library.
         """
         return Client(config)
 
 class ClientRequest(object):
+    """ TBD
+    """
     pass
 
 class ClientResponse(object):
+    """ This represents the response from a server based on some request.
+        This is commonly returned from one of the methods ``get``, ``head``,
+        ``post``, ``delete``, ``options`` or ``handle`` on the 
+        :class:`WebResource` class.
+        
+        The class supports the following data members.
+
+        * ``client`` - the client used to configure this response.
+        * ``resource`` - the resource used to initiate this response.
+        * ``url``- the URL of the resource retrieved.
+        * ``entity`` - the original entity, as a binary stream, retrieved.
+        * ``status`` - the HTTP status code for this response.
+        * ``reason_phrase`` - the HTTP reason phrase for this response.
+        * ``headers`` - the dictionary of all headers for this response.
+        * ``allow`` - the value of the HTTP ``Allow`` response header.
+        * ``entity_tag`` - the value of the HTTP ``ETag`` response header.`
+        * ``language`` - the value of the HTTP ``Language`` response header.`
+        * ``length`` - the value of the HTTP ``Content-Length`` response header.`
+        * ``location`` - the value of the HTTP ``Location`` response header.`
+        * ``response_date`` - the value of the HTTP ``Date`` response header.`
+        * ``type`` - the value of the HTTP ``Content-Type`` response header.`
+    """
     def __init__(self, resource, response, client):
+        """ ClientResponse(resource, response, client) -> ClientResponse
+            construct a new response from the actual underlying HTTP response
+            object. Also track the resource that created this response and
+            the client.
+        """
         self.resource = resource
         self.client = client
         self.entity = response.read()
@@ -93,19 +122,31 @@ class ClientResponse(object):
             self.parsed_entity = None
 
 class ClientFilter(object):
+    """ TBD
+    """
     def handle(self, client_request, next_filter):
+        """ handle(client_request, next_filter) -> ClientResponse
+        """
         return None
 
-class LastClientFilter(ClientFilter):
-    def __init__(self, response):
-        self.response = response
-
-    def handle(self, client_request, next_filter):
-        return self.response
-
 class WebResource(object):
+    """ This is the primary class used to represent a REST resource which a 
+        client can interact with. The resource has a URL, is associated
+        with a :class:`Client` object used to configure HTTP behavior, and
+        allows clients to retrieve, update and delete the resource.
 
+        Note that nearly all methods either return the current, or a new
+        instance of :class:`WebResource` which allows a chaining style of
+        construction.
+    """
     def __init__(self, url, client):
+        """ Webresource(URL, client) -> WebResource
+            Construct a new WebResource from a client, with the specified
+            URL. Resources should not be created directly in this manner,
+            rather they should use the ``create`` method on :class:`Client`
+            of the :py:func:`path`, :py:func:`sub_resource`, or 
+            :py:func:`query_params` methods on an existing resource.
+        """
         self.url = url
         check = urlparse.urlparse(url)
         if check.scheme == '' or check.netloc == '':
@@ -116,6 +157,11 @@ class WebResource(object):
         self.req_entity = None
 
     def query_params(self, dictionary):
+        """ query_params(dictionary) -> WebResource
+            Construct and return a new :class:`WebResource` whose URL is 
+            based upon the current resource URL with the additional query
+            parameters specified in the dictionary added.
+        """
         check = urlparse.urlparse(self.url)
         if check.query == '':
             query_terms = '?' + urllib.urlencode(dictionary)
@@ -127,12 +173,27 @@ class WebResource(object):
         return WebResource(new_url, self.client)
 
     def sub_resource(self, append_path):
+        """ sub_resource(append_path) -> WebResource
+            Construct and return a new :class:`WebResource` whose URL is 
+            based upon the current resource URL with the additional path
+            segment resolved against it. 
+        """
         return self.path(append_path)
 
     def path(self, append_path):
+        """ path(append_path) -> WebResource
+            Construct and return a new :class:`WebResource` whose URL is 
+            based upon the current resource URL with the additional path
+            segment resolved against it. 
+        """
         return WebResource(urlparse.urljoin(self.url, append_path, True), self.client)
 
     def header(self, name, value, append=False):
+        """ header(name, value, append=False) -> WebResource
+            Add a custom header to the resource, all headers will be sent
+            when the request for this resource is handled. This method will
+            return the current resource.
+        """
         if append and name in self.headers:
             self.headers[name] = "%s, %s" % (self.headers[name], value)
         else:
@@ -140,43 +201,70 @@ class WebResource(object):
         return self
     
     def accept(self, content_type, quality=None):
+        """ accept(content_type, quality=None) -> WebResource
+        """
         if not quality is None:
             content_type = "%s; q=%s" % (content_type, quality)
         self.header('Accept', content_type, True)
         return self
 
     def accept_language(self, language):
+        """ accept_language(language) -> WebResource
+        """
         self.header('Language', language, True)
         return self
 
     def type(self, content_type):
+        """ type(content_type) -> WebResource
+        """
         self.header('Content-Type', content_type)
         return self
 
     def entity(self, req_entity):
+        """ entity() -> data
+        """
         self.req_entity = req_entity
 
     def get(self):
+        """ get() -> ClientResponse
+        """
         return self.execute('GET')
 
     def head(self):
+        """ head() -> ClientResponse
+        """
         return self.execute('HEAD')
 
     def put(self, entity=None):
+        """ put(entity=Nont) -> ClientResponse
+        """
         self.req_entity = entity
         return self.execute('PUT')
 
     def post(self, entity=None):
+        """ post(entity=None) -> ClientResponse
+        """
         self.req_entity = entity
         return self.execute('POST')
 
     def delete(self):
+        """ delete() -> ClientResponse
+        """
         return self.execute('DELETE')
 
     def options(self):
+        """ options() -> ClientResponse
+        """
         return self.execute('OPTIONS')
 
+    def handle(self, client_request):
+        """ handle(client_request) -> ClientResponse
+        """
+        pass
+
     def execute(self, method):
+        """ execute(method) -> ClientResponse
+        """
         # TODO: process filters
         if method in ['GET', 'POST']:
             request = urllib2.Request(url=self.url, data=self.req_entity)
@@ -198,20 +286,31 @@ class WebResource(object):
             return ClientResponse(self, response, self.client)
 
     def add_filter(self, filter):
+        """ add_filter(filter) -> webResource
+        """
         if not self.is_filter_present(filter):
             self.filters.append(filter)
+        return self
 
     def get_head_handler(self):
+        """ get_head_handler() -> ClientFilter
+        """
         if len(self.filters) > 0:
             return self.filters[0]
         else:
             return None
 
     def is_filter_present(self, filter):
+        """ is_filter_present(filter) -> boolean
+        """
         return len([f for f in self.filters if f == filter]) > 0
+        return self
 
     def remove_filter(self, filter):
+        """ remove_filter(filter) -> WebResource
+        """
         self.filters.remove(filter)
+        return self
 
     def debug(self):
         return "<Web Resource '%s' %s>" % (self.url, repr(self.headers))

@@ -1,3 +1,3 @@
 *.pyc
+build
 Guernsey_REST_Client.egg-info
-doc/_build

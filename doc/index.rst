@@ -6,12 +6,17 @@
 Welcome to Guernsey REST Client's documentation
 ===============================================
 
+Guernsey is a REST client module for Python modeled after the Java
+Jersey client API. This API is simple, provides a more functional
+feel and thin semantic layer over HTTP.
+
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
    guernsey
+   filters
 
 Indices and tables
 ==================
