@@ -179,8 +179,8 @@ class WebResource(object):
         """
         return WebResource(urlparse.urljoin(self.url, append_path, True), self.client)
 
-    def header(self, name, value, append=False):
-        """ header(name, value, append=False) -> WebResource
+    def add_header(self, name, value, append=False):
+        """ add_header(name, value, append=False) -> WebResource
             Add a custom header to the resource, all headers will be sent
             when the request for this resource is handled. This method will
             return the current resource.
@@ -193,71 +193,121 @@ class WebResource(object):
     
     def accept(self, content_type, quality=None):
         """ accept(content_type, quality=None) -> WebResource
+            Add a MIME content type to the list of values in the 
+            HTTP ``Accepts`` request header, note that the quality
+            parameter is optional but should be a simple decimal
+            value.
         """
         if not quality is None:
             content_type = "%s; q=%s" % (content_type, quality)
-        self.header('Accept', content_type, True)
+        self.add_header('Accept', content_type, True)
+        return self
+
+    def accept_encoding(self, encoding):
+        """ accept_encoding(encoding) -> WebResource
+            Add to the list of values in the HTTP ``Accept-Encoding`` 
+            request header.
+        """
+        self.add_header('Accept-Language', language, True)
         return self
 
     def accept_language(self, language):
         """ accept_language(language) -> WebResource
+            Add to the list of values in the HTTP ``Accept-Language`` 
+            request header.
         """
-        self.header('Language', language, True)
+        self.add_header('Accept-Language', language, True)
+        return self
+
+    def encoding(self, encoding):
+        """ encoding(encoding) -> WebResource
+            Set the value of the HTTP ``Content-Encoding`` request header.
+        """
+        self.add_header('Content-Type', content_type)
+        return self
+
+    def language(self, language):
+        """ language(language) -> WebResource
+            Set the value of the HTTP ``Content-Language`` request header.
+        """
+        self.add_header('Content-Type', content_type)
         return self
 
     def type(self, content_type):
         """ type(content_type) -> WebResource
+            Set the value of the HTTP ``Content-Type`` request header.
         """
-        self.header('Content-Type', content_type)
+        self.add_header('Content-Type', content_type)
         return self
 
     def entity(self, req_entity):
         """ entity() -> data
+            Set the data to be sent to the REST service as the entity body
+            with this request.
         """
         self.req_entity = req_entity
 
     def get(self):
         """ get() -> ClientResponse
+            Perform a GET against the resource associated with the URL
+            of this :class:`WebResource`.
         """
         request = ClientRequest(self, 'GET')
         return self.handle(request)
 
     def head(self):
         """ head() -> ClientResponse
+            Perform a HEAD against the resource associated with the URL
+            of this :class:`WebResource`.
         """
         return self.execute('HEAD')
 
     def put(self, entity=None):
         """ put(entity=None) -> ClientResponse
+            Perform a PUT against the resource associated with the URL
+            of this :class:`WebResource`.
         """
         self.req_entity = entity
         return self.execute('PUT')
 
     def post(self, entity=None):
         """ post(entity=None) -> ClientResponse
+            Perform a POST against the resource associated with the URL
+            of this :class:`WebResource`.
         """
         self.req_entity = entity
         return self.execute('POST')
 
     def delete(self):
         """ delete() -> ClientResponse
+            Perform a DELETE against the resource associated with the URL
+            of this :class:`WebResource`.
         """
         return self.execute('DELETE')
 
     def options(self):
         """ options() -> ClientResponse
+            Perform an OPTIONS against the resource associated with the URL
+            of this :class:`WebResource`.
         """
         return self.execute('OPTIONS')
 
     def handle(self, client_request):
         """ handle(client_request) -> ClientResponse
+            This method is where we actually process a client request and 
+            return the client response. This method will invoke all the
+            filters defined for this resource and will execute the HTTP
+            logic at the end of the filter chain before returning.
         """
         client_request.set_filters(self.filters + [self.client.actual_client]);
         final_response = client_request.filters[0].handle(client_request)
         return final_response
 
     def add_filter(self, filter):
-        """ add_filter(filter) -> webResource
+        """ add_filter(filter) -> WebResource
+            Add a filter to the chain for this resource, note that filters
+            are always added to the head of the chain, so effectively the
+            chain acts as a stack.
         """
         if not self.is_filter_present(filter):
             self.filters.insert(0, filter)
@@ -265,6 +315,13 @@ class WebResource(object):
 
     def head_filter(self):
         """ head_filter() -> ClientFilter
+            Return the first filter in the filter chain defined for this
+            resource. 
+
+            Note that Guernsey copies the resource's filter chain
+            to the :class:`ClientRequest` when the request is handled and
+            so this only works against the chain before it is copied to 
+            the request.
         """
         if len(self.filters) > 0:
             return self.filters[0]
@@ -273,12 +330,26 @@ class WebResource(object):
 
     def is_filter_present(self, filter):
         """ is_filter_present(filter) -> boolean
+            Returns ``True`` if the specified filter is in the chain for
+            this resource.
+
+            Note that Guernsey copies the resource's filter chain
+            to the :class:`ClientRequest` when the request is handled and
+            so this only works against the chain before it is copied to 
+            the request.
         """
         return len([f for f in self.filters if f == filter]) > 0
         return self
 
     def remove_filter(self, filter):
         """ remove_filter(filter) -> WebResource
+            Remove the identified filter from the filter chain for this
+            resource.
+
+            Note that Guernsey copies the resource's filter chain
+            to the :class:`ClientRequest` when the request is handled and
+            so this only works against the chain before it is copied to 
+            the request.
         """
         self.filters.remove(filter)
         return self
