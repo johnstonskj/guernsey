@@ -1,3 +1,4 @@
 *.pyc
 build
-Guernsey_REST_Client.egg-info
+dist
+GuernseyRESTClient.egg-info
