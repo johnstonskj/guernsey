@@ -12,5 +12,6 @@ setup(name='GuernseyRestClient',
       author='Simon Johnston',
       author_email='simon@johnstonshome.org',
       packages=find_packages(exclude=['test']),
+      scripts = ['scripts/resh'],
       test_suite='test.suite'
       )
