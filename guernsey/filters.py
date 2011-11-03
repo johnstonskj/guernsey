@@ -58,11 +58,11 @@ class LoggingFilter(ClientFilter):
             This will construct a 
         """
         if log_name is None:
-            log_name = 'GuernseyClient'
+            self.log_name = 'GuernseyClient'
         else:
             self.log_name = log_name
         if log_level is None:
-            log_level = logging.INFO
+            self.log_level = logging.INFO
         else:
             self.log_level = log_level
 

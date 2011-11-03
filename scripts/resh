@@ -1,8 +1,15 @@
 #!/usr/bin/env python
 
 from guernsey import Client
+from guernsey.filters import *
 import atexit, os.path, pprint, readline, subprocess, sys, threading
 
+
+# ------------------------------------------------------------
+# Standard Filter list.
+# ------------------------------------------------------------
+
+filters = {'Logging': LoggingFilter(), 'Gzip': GzipContentEncodingFilter(), 'MD5': ContentMd5Filter()}
 
 # ------------------------------------------------------------
 # Command-handling functions.
@@ -37,7 +44,7 @@ def command_completer(text, index):
 
 def cd(resource, path):
     """ cd path
-        resolve path against the current working resource and change
+        Resolve path against the current working resource and change
         URL.
     """
     return resource.path(path)
@@ -45,7 +52,7 @@ add_command(cd)
 
 def pwd(resource, args):
     """ pwd
-        print current target URL.
+        Print current target URL.
     """
     print resource.url
     return resource
@@ -95,8 +102,31 @@ add_command(options)
 
 def filter(resource, args):
     """ filter [name=On|Off]
+        Either display the current status of system filters, or set the
+        state of a specific filter.
     """
-    print 'filter not yet implemented'
+    if args == '':
+        for filter in sorted(filters.keys()):
+            if resource.is_filter_present(filters[filter]):
+                print '%s is On' % filter
+            else:
+                print '%s is Off' % filter
+    else:
+        equals = args.find('=')
+        if equals > 0:
+            name = args[:equals].strip()
+            if name in filters.keys():
+                value = args[equals+1:].strip()
+                if value == 'On':
+                    resource.add_filter(filters[name])
+                elif value == 'Off':
+                    resource.remove_filter(filters[name])
+                else:
+                    print 'Must specify either On or Off'
+            else:
+                print 'Unknown filter: ' + name
+        else:
+            print 'Try filter name=On|Off'
     return resource
 add_command(filter)
 
