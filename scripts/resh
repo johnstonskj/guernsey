@@ -8,14 +8,22 @@
 
 from guernsey import Client
 from guernsey.filters import *
-import atexit, os.path, pprint, re, readline, StringIO
+import atexit, logging, os.path, pprint, re, readline, StringIO
 import subprocess, sys, threading, urlparse
+
+# ------------------------------------------------------------
+# Setup standard logging, this is used to support debug mode.
+# ------------------------------------------------------------
+
+FORMAT = '%(asctime)-15s %(module)s.%(funcName) [%(levelname)s] - %(message)s'
+logging.basicConfig(format=FORMAT)
+logger = logging.getLogger('resh')
 
 # ------------------------------------------------------------
 # Standard Filter list.
 # ------------------------------------------------------------
 
-filters = {'Logging': LoggingFilter(), 'Gzip': GzipContentEncodingFilter(), 'MD5': ContentMd5Filter()}
+filters = {'Logging': LoggingFilter('resh'), 'Gzip': GzipContentEncodingFilter(), 'MD5': ContentMd5Filter()}
 
 # ------------------------------------------------------------
 # Command-handling functions.
@@ -45,7 +53,7 @@ def command_completer(text, index):
         return None
 
 # ------------------------------------------------------------
-# Shell commands themselves.
+# Shell commands themselves and support functions.
 # ------------------------------------------------------------
 
 def substitute(string, environment):
@@ -216,6 +224,24 @@ def delete(resource, args):
     print str(response.status) + ' ' + response.reason_phrase
     return resource
 add_command(delete)
+
+def debug(resource, args):
+    """ debug [On|Off]
+        Either display the current debug status, or set it.
+    """
+    if args == '':
+        if logger.isEnabledFor(logging.DEBUG):
+            print 'debug is On'
+        else:
+            print 'debug is Off'
+    elif args == 'On':
+        logger.setLevel(logging.DEBUG)
+    elif args == 'Off':
+        logger.setLevel(logging.WARN)
+    else:
+        print 'Try: debug [On|Off]'
+    return resource
+add_command(debug)
 
 def options(resource, args):
     """ options
