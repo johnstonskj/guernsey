@@ -1,6 +1,8 @@
-""" 
-The setup/config script for the Guernsey REST client package.
-"""
+#
+# Guernsey REST client package, based on the Java Jersey client.
+# Copyright (c) 2011 Simon Johnston (simon@johnstonshome.org)
+# See LICENSE.txt included in this distribution or more details.
+#
 
 from setuptools import setup, find_packages
 

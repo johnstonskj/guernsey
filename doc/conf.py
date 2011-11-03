@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 #
-# Guernsey REST Client documentation build configuration file, created by
-# sphinx-quickstart on Wed Nov  2 10:34:22 2011.
+#
+# Guernsey REST client package, based on the Java Jersey client.
+# Copyright (c) 2011 Simon Johnston (simon@johnstonshome.org)
+# See LICENSE.txt included in this distribution or more details.
 #
 # This file is execfile()d with the current directory set to its containing dir.
 #
