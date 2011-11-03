@@ -17,6 +17,7 @@ Contents:
 
    guernsey
    filters
+   entities
 
 Indices and tables
 ==================

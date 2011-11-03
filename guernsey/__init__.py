@@ -7,10 +7,8 @@
 from datetime import datetime
 from email.utils import parsedate
 import copy, logging, mimetools, types, urllib, urllib2, urlparse
-try:
-    import json
-except:
-    json = None
+
+from guernsey.entities import *
 
 class RequestWithMethod(urllib2.Request):
     """ This simple class is used to allow us to use the standard urllib2
@@ -102,6 +100,7 @@ class Client(Filterable):
         else:
             self.config = {}
         self.filters = []
+        self.entity_classes = [JsonReader(), JsonWriter()]
         self.actual_client = ExecClientFilter()
 
     def resource(self, url):
@@ -118,6 +117,23 @@ class Client(Filterable):
         if s is None:
             return None
         return datetime(*parsedate(s)[:6])
+
+    def parse_entity(self, client_response):
+        for reader in self.entity_classes:
+            if hasattr(reader, 'is_readable') and reader.is_readable(client_response.type):
+                client_response.parsed_entity = reader.read(client_response.entity, client_response.type)
+                break
+        return client_response
+
+    def write_entity(self, client_request):
+        for writer in self.entity_classes:
+            if hasattr(writer, 'is_writable') and writer.is_writable(client_request.entity, client_request.type):
+                fh = StringIO.StringIO()
+                writer.write(client_request.entity, client_request.type, fh)
+                client_request.entity = fh.getvalue()
+                break
+        return client_response
+        pass
 
     @classmethod
     def create(cls, config=None, default_filters=None):
@@ -175,10 +191,7 @@ class ClientResponse(object):
             self.location = self.headers.get('location', None)
             self.response_date = client.parse_http_date(self.headers.get('date', None))
             self.type = self.headers.get('content-type', None)
-        if self.type in ['text/json', 'application/json'] and not json is None:
-            self.parsed_entity = json.loads(self.entity)
-        else:
-            self.parsed_entity = None
+        self.client.parse_entity(self)
 
 class WebResource(Filterable):
     """ This is the primary class used to represent a REST resource which a 

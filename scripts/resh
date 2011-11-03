@@ -197,7 +197,10 @@ def get(resource, args):
     print str(response.status) + ' ' + response.reason_phrase
     if response.status< 300 and not response.entity is None:
         if args == '':
-            print response.entity
+            if not response.parsed_entity is None:
+                pprint.pprint(response.parsed_entity)
+            else:
+                print response.entity
         else:
             fp = None
             try:
