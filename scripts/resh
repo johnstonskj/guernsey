@@ -100,7 +100,7 @@ def help(args):
 add_command(help)
 
 def exec_command(args):
-    """ exec [command]
+    """ ! [command]
         Execute a command in a sub-shell.
     """
     pass
@@ -128,6 +128,14 @@ def parse_args(args):
     global cwr
     cwr = client.resource(args[0])
  
+def parse_rcfile():
+    rcfile = os.path.join(os.path.expanduser("~"), ".reshrc")
+    if os.path.exists(rcfile):
+        file = open(rcfile, 'rt')
+        for line in file:
+            parse(line)
+        file.close()
+
 def parse(line):
     line = line.strip()
     if line == '':
@@ -157,4 +165,5 @@ def shell():
 if __name__ == '__main__':
     startup()
     parse_args(sys.argv[1:])
+    parse_rcfile()
     shell()

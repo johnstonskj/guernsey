@@ -51,6 +51,16 @@ class Client(object):
         """
         return WebResource(url, self)
 
+    def clone(self, resource):
+        """ clone(resource) -> WebResource
+            This will return a copy of an existing resource with no shared data,
+            specifically will copy ``url``, ``filters``, ``headers`` and 
+            ``req_entity``.
+        """
+        copy = WebResource(resource.url, self)
+        # TODO: clone
+        return copy
+
     def parse_http_date(self, s):
         """ parse_http_date(string) -> datetime
             Return a datetime value parsed from the standard HTTP 
