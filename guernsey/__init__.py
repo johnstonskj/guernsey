@@ -26,14 +26,74 @@ class RequestWithMethod(urllib2.Request):
         """ return the method provided in the initializer """
         return self._method
 
-class Client(object):
+class Filterable(object):
+    """ Base class for :class:`Client` and :class:`WebResource` which 
+        provides the common implementation of a filter list. Note that
+        each :class:`WebResource` when constructed will copy its initial
+        filters from the client used to create it.
+    """
+    def __init__(self):
+        self.filters = []
+
+    def add_filter(self, filter):
+        """ add_filter(filter) -> WebResource
+            Add a filter to the chain for this resource, note that filters
+            are always added to the head of the chain, so effectively the
+            chain acts as a stack.
+        """
+        if not self.is_filter_present(filter):
+            self.filters.insert(0, filter)
+        return self
+
+    def head_filter(self):
+        """ head_filter() -> ClientFilter
+            Return the first filter in the filter chain defined for this
+            resource. 
+
+            Note that Guernsey copies the resource's filter chain
+            to the :class:`ClientRequest` when the request is handled and
+            so this only works against the chain before it is copied to 
+            the request.
+        """
+        if len(self.filters) > 0:
+            return self.filters[0]
+        else:
+            return self.client.default_filter
+
+    def is_filter_present(self, filter):
+        """ is_filter_present(filter) -> boolean
+            Returns ``True`` if the specified filter is in the chain for
+            this resource.
+
+            Note that Guernsey copies the resource's filter chain
+            to the :class:`ClientRequest` when the request is handled and
+            so this only works against the chain before it is copied to 
+            the request.
+        """
+        return len([f for f in self.filters if f == filter]) > 0
+        return self
+
+    def remove_filter(self, filter):
+        """ remove_filter(filter) -> WebResource
+            Remove the identified filter from the filter chain for this
+            resource.
+
+            Note that Guernsey copies the resource's filter chain
+            to the :class:`ClientRequest` when the request is handled and
+            so this only works against the chain before it is copied to 
+            the request.
+        """
+        self.filters.remove(filter)
+        return self
+
+class Client(Filterable):
     """ This is the root object that a REST client interacts with, it is
         responsible for setting up the connection environment and holds
         shared properties used by resource actions. Instances should only
         be created with the :py:func:`create` class method.
     """
-    def __init__(self, config, default_filters):
-        """ Client(config, default_filters)
+    def __init__(self, config):
+        """ Client(config)
             A caller should not instantiate a Client object directly, 
             they should only use Client.create()
         """
@@ -41,10 +101,7 @@ class Client(object):
             self.config = config
         else:
             self.config = {}
-        if type(default_filters) == types.ListType:
-            self.default_filters = default_filters
-        else:
-            self.default_filters = []
+        self.filters = []
         self.actual_client = ExecClientFilter()
 
     def resource(self, url):
@@ -64,11 +121,11 @@ class Client(object):
 
     @classmethod
     def create(cls, config=None, default_filters=None):
-        """ Client.create(config, default_filters) -> Client
+        """ Client.create(config) -> Client
             Create a new client instance, this is the primary entry point
             for the library.
         """
-        return Client(config, default_filters)
+        return Client(config)
 
 class ClientResponse(object):
     """ This represents the response from a server based on some request.
@@ -123,7 +180,7 @@ class ClientResponse(object):
         else:
             self.parsed_entity = None
 
-class WebResource(object):
+class WebResource(Filterable):
     """ This is the primary class used to represent a REST resource which a 
         client can interact with. The resource has a URL, is associated
         with a :class:`Client` object used to configure HTTP behavior, and
@@ -146,7 +203,7 @@ class WebResource(object):
         if check.scheme == '' or check.netloc == '':
             raise ValueError('invalid URL value')
         self.client = client
-        self.filters = client.default_filters
+        self.filters = client.filters
         self.headers = {}
         self.req_entity = None
 
@@ -324,57 +381,6 @@ class WebResource(object):
         client_request.set_filters(self.filters + [self.client.actual_client]);
         final_response = client_request.filters[0].handle(client_request)
         return final_response
-
-    def add_filter(self, filter):
-        """ add_filter(filter) -> WebResource
-            Add a filter to the chain for this resource, note that filters
-            are always added to the head of the chain, so effectively the
-            chain acts as a stack.
-        """
-        if not self.is_filter_present(filter):
-            self.filters.insert(0, filter)
-        return self
-
-    def head_filter(self):
-        """ head_filter() -> ClientFilter
-            Return the first filter in the filter chain defined for this
-            resource. 
-
-            Note that Guernsey copies the resource's filter chain
-            to the :class:`ClientRequest` when the request is handled and
-            so this only works against the chain before it is copied to 
-            the request.
-        """
-        if len(self.filters) > 0:
-            return self.filters[0]
-        else:
-            return self.client.default_filter
-
-    def is_filter_present(self, filter):
-        """ is_filter_present(filter) -> boolean
-            Returns ``True`` if the specified filter is in the chain for
-            this resource.
-
-            Note that Guernsey copies the resource's filter chain
-            to the :class:`ClientRequest` when the request is handled and
-            so this only works against the chain before it is copied to 
-            the request.
-        """
-        return len([f for f in self.filters if f == filter]) > 0
-        return self
-
-    def remove_filter(self, filter):
-        """ remove_filter(filter) -> WebResource
-            Remove the identified filter from the filter chain for this
-            resource.
-
-            Note that Guernsey copies the resource's filter chain
-            to the :class:`ClientRequest` when the request is handled and
-            so this only works against the chain before it is copied to 
-            the request.
-        """
-        self.filters.remove(filter)
-        return self
 
     def debug(self):
         return "<Web Resource '%s' %s>" % (self.url, repr(self.headers))

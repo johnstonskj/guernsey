@@ -47,9 +47,11 @@ and decodes it into a more meaningful form.
 
 .. autoclass:: guernsey.Client
    :members:
+   :inherited-members:
 
 .. autoclass:: guernsey.WebResource
    :members:
+   :inherited-members:
 
 .. autoclass:: guernsey.ClientResponse
    :members:
