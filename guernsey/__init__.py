@@ -4,7 +4,7 @@
 
 from datetime import datetime
 from email.utils import parsedate
-import logging, mimetools, types, urllib, urllib2, urlparse
+import copy, logging, mimetools, types, urllib, urllib2, urlparse
 try:
     import json
 except:
@@ -50,16 +50,6 @@ class Client(object):
             This will construct a new :class:`WebResource` with the specified URL.
         """
         return WebResource(url, self)
-
-    def clone(self, resource):
-        """ clone(resource) -> WebResource
-            This will return a copy of an existing resource with no shared data,
-            specifically will copy ``url``, ``filters``, ``headers`` and 
-            ``req_entity``.
-        """
-        copy = WebResource(resource.url, self)
-        # TODO: clone
-        return copy
 
     def parse_http_date(self, s):
         """ parse_http_date(string) -> datetime
@@ -156,6 +146,18 @@ class WebResource(object):
         self.filters = client.default_filters
         self.headers = {}
         self.req_entity = None
+
+    def clone(self):
+        """ clone() -> WebResource
+            This will return a copy of the current resource with no shared data,
+            specifically will copy ``url``, ``filters``, ``headers`` and 
+            ``req_entity``.
+        """
+        r2 = WebResource(self.url, self.client)
+        r2.filters = self.filters[:]
+        r2.headers = self.headers.copy()
+        r2.req_entity = copy.deepcopy(self.req_entity)
+        return r2
 
     def query_params(self, dictionary):
         """ query_params(dictionary) -> WebResource

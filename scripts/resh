@@ -1,12 +1,24 @@
 #!/usr/bin/env python
 
 from guernsey import Client
-import atexit, os.path, pprint, readline, sys
+import atexit, os.path, pprint, readline, subprocess, sys, threading
 
-client = Client.create()
-cwr = None
+
+# ------------------------------------------------------------
+# Command-handling functions.
+# ------------------------------------------------------------
 
 commands = {}
+
+class AsyncCommandThread(threading.Thread):
+    def __init__(self, command, resource, args):
+        self.command = command
+        self.resource = resource
+        self.args = args
+        threading.Thread.__init__(self)
+
+    def run(self):
+        self.command(self.resource, self.args)
 
 def add_command(cmd, name=None):
     if name is None:
@@ -19,75 +31,92 @@ def command_completer(text, index):
     except IndexError:
         return None
 
-def cd(path):
+# ------------------------------------------------------------
+# Shell commands themselves.
+# ------------------------------------------------------------
+
+def cd(resource, path):
     """ cd path
         resolve path against the current working resource and change
         URL.
     """
-    global cwr
-    cwr = cwr.path(path)
+    return resource.path(path)
 add_command(cd)
 
-def pwd(args):
+def pwd(resource, args):
     """ pwd
         print current target URL.
     """
-    print cwr.url
+    print resource.url
+    return resource
 add_command(pwd)
 
-def get(args):
+def get(resource, args):
     """ get
         Retrieve the current URL entity.
     """
-    response = cwr.get()
+    response = resource.get()
     print str(response.status) + ' ' + response.reason_phrase
     if response.status< 300 and not response.entity is None:
         print response.entity
+    return resource
 add_command(get)
 
-def head(args):
+def head(resource, args):
     """ head
         Retrieve the current resource headers only.
     """
-    response = cwr.head()
+    response = resource.head()
     print str(response.status) + ' ' + response.reason_phrase
     pprint.pprint(response.headers)
+    return resource
 add_command(head)
 
-def delete(args):
+def delete(resource, args):
     """ delete
         Delete the current resource.
     """
-    response = cwr.delete()
+    response = resource.delete()
     print str(response.status) + ' ' + response.reason_phrase
+    return resource
 add_command(delete)
 
-def options(args):
+def options(resource, args):
     """ options
         Retrieve the options for current resource.
     """
-    response = cwr.head()
+    response = resource.head()
     print str(response.status) + ' ' + response.reason_phrase
     pprint.pprint(response.headers)
     if not response.entity is None:
         print response.entity
+    return resource
 add_command(options)
 
-def set(args):
+def filter(resource, args):
+    """ filter [name=On|Off]
+    """
+    print 'filter not yet implemented'
+    return resource
+add_command(filter)
+
+def set(resource, args):
     """ set [key=value]
         Either display the current request settings, or define a new request
         setting by providing an HTTP request header key and value.
     """
     if args == '':
-        for k in sorted(cwr.headers.iterkeys()):
-            print '%s=%s' % (k, cwr.headers[k])
+        for k in sorted(resource.headers.iterkeys()):
+            print '%s=%s' % (k, resource.headers[k])
     else:
         equals = args.find('=')
         if equals > 0:
-            cwr.headers[args[:equals].strip()] = args[equals+1:].strip()
+            # TODO: process variables
+            resource.headers[args[:equals].strip()] = args[equals+1:].strip()
+    return resource
 add_command(set)
 
-def help(args):
+def help(resource, args):
     """ help
         Display help on built-in shell commands.
     """
@@ -97,23 +126,29 @@ def help(args):
             print ' ' + cmd
         else:
             print text
+    return resource
 add_command(help)
 
-def exec_command(args):
+def exec_command(resource, args):
     """ ! [command]
         Execute a command in a sub-shell.
     """
-    pass
+    subprocess.call(args, shell=True)
+    return resource
 add_command(exec_command, "!")
 
-def exit(args):
+def exit(resource, args):
     """ exit
         Exit the shell.
     """
-    pass
+    return resource
 add_command(exit)
 
-def startup():
+# ------------------------------------------------------------
+# The following are only shell related functions.
+# ------------------------------------------------------------
+
+def configure_readline():
     histfile = os.path.join(os.path.expanduser("~"), ".resh_hist")
     try:
         readline.set_completer(command_completer)
@@ -124,46 +159,57 @@ def startup():
     except IOError:
         pass
 
-def parse_args(args):
-    global cwr
-    cwr = client.resource(args[0])
+def parse_command_line(args):
+    client = Client.create()
+    if len(args) < 1:
+        print 'Usage: resh URL'
+        sys.exit(1)
+    return client.resource(args[0])
  
-def parse_rcfile():
+def parse_rcfile(resource):
     rcfile = os.path.join(os.path.expanduser("~"), ".reshrc")
     if os.path.exists(rcfile):
         file = open(rcfile, 'rt')
         for line in file:
-            parse(line)
+            parse_line(resource, line)
         file.close()
 
-def parse(line):
+def parse_line(resource, line):
     line = line.strip()
-    if line == '':
-        return
-    space = line.find(' ')
-    if space > 0:
-        cmd = line[:space]
-        line = line[space+1:]
-    else:
-        cmd = line
-        line = ''
-    if commands.has_key(cmd):
-        commands[cmd](line)
-    else:
-        print 'Unknown command: ' + cmd
+    async = False
+    if line.endswith('&'):
+        line = line[:line.find('&')].strip()
+        async = True
+    if line != '':
+        space = line.find(' ')
+        if space > 0:
+            cmd = line[:space]
+            line = line[space+1:]
+        else:
+            cmd = line
+            line = ''
+        if commands.has_key(cmd):
+            if async:
+                thread = AsyncCommandThread(commands[cmd], resource.clone(), line)
+                thread.start()
+            else:
+                resource = commands[cmd](resource, line)
+        else:
+            print 'Unknown command: ' + cmd
+    return resource
 
-def shell():
+def run_loop(resource):
     while True:
         try:
             input = raw_input('> ')
             if input.strip() == 'exit':
                 break
-            parse(input)
+            resource = parse_line(resource, input)
         except EOFError:
             break
 
 if __name__ == '__main__':
-    startup()
-    parse_args(sys.argv[1:])
-    parse_rcfile()
-    shell()
+    configure_readline()
+    resource = parse_command_line(sys.argv[1:])
+    parse_rcfile(resource)
+    run_loop(resource)
