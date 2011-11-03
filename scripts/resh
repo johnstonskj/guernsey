@@ -172,13 +172,23 @@ def put(resource, args):
 add_command(put)
 
 def get(resource, args):
-    """ get
-        Retrieve the current URL entity.
+    """ get [outputfile]
+        Retrieve the current URL entity; if specified the returned
+        entity will be written to ``outputfile``..
     """
     response = resource.get()
     print str(response.status) + ' ' + response.reason_phrase
     if response.status< 300 and not response.entity is None:
-        print response.entity
+        if args == '':
+            print response.entity
+        else:
+            fp = None
+            try:
+                fp = open(args, 'wb')
+                fp.write(response.entity)
+            finally:
+                if not fp is None:
+                    fp.close()
     return resource
 add_command(get)
 
