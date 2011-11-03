@@ -8,6 +8,7 @@ try:
     import json
 except:
     json = None
+from xml.etree.ElementTree import fromstring, _ElementInterface, ElementTree
 
 class EntityReader(object):
     """ An ``EntityReader`` is used to read a raw entity from the
@@ -46,7 +47,7 @@ class EntityWriter(object):
 
 class JsonReader(EntityReader):
     def is_readable(self, content_type):
-        return not json is None and content_type.endswith('json')
+        return not json is None and content_type.endswith('/json')
 
     def read(self, raw_entity, content_type):
         return json.loads(raw_entity)
@@ -54,8 +55,33 @@ class JsonReader(EntityReader):
 
 class JsonWriter(EntityWriter):
     def is_writable(self, object, content_type):
-        return not json is None and content_type.endswith('json')
+        return not json is None and content_type.endswith('/json')
 
     def write(self, object, content_type, to_file):
         json.dump(object, to_file)
+        return to_file
+
+class XmlReader(EntityReader):
+    def is_readable(self, content_type):
+        if content_type.endswith('/xml') or content_type.endswith('+xml'):
+            return True
+        return False
+
+    def read(self, raw_entity, content_type):
+        return fromstring(raw_entity)
+
+
+class XmlWriter(EntityWriter):
+    def is_writable(self, object, content_type):
+        if content_type.endswith('/xml') or content_type.endswith('+xml'):
+            if isinstance(object, _ElementInterface) or isinstance(object, ElementTree):
+                return True
+        return False
+
+    def write(self, object, content_type, to_file):
+        if isinstance(object, _ElementInterface):
+            tree = ElementTree(object)
+            tree.write(to_file, encoding='utf-8')
+        else:
+            object.write(to_file, encoding='utf-8')
         return to_file
