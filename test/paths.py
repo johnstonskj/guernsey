@@ -14,29 +14,36 @@ class TestPathConstruction(unittest.TestCase):
         c = Client.create()
         try:
             r = c.resource('foo')
-            print str(r)
+            self.fail('"foo" should have failed as its not a valid URL')
         except ValueError:
             print 'checking URL check - OK'
 
     def testPathMethod(self):
         c = Client.create()
         r = c.resource("http://example.com/base")
-        print str(c)
-        print str(r)
+        self.assertEquals("http://example.com/base", r.url)
+
         r = r.path("add1/")
-        print str(r)
+        self.assertEquals("http://example.com/add1/", r.url)
+
         r = r.path("add2/")
-        print str(r)
+        self.assertEquals("http://example.com/add1/add2/", r.url)
+
         r = r.path("add3/")
-        print str(r)
+        self.assertEquals("http://example.com/add1/add2/add3/", r.url)
+
         r = r.path("#add4")
-        print str(r)
-        r = r.query_params({"q": "my+query", "return": "std", "page": 1})
-        print str(r)
+        self.assertEquals("http://example.com/add1/add2/add3/#add4", r.url)
+
+        r = r.query_params({"q": "my query", "return": "std", "page": 1})
+        self.assertEquals("http://example.com/add1/add2/add3/?q=my+query&return=std&page=1", r.url)
+
         r = r.query_params({"format": "json"})
-        print str(r)
+        self.assertEquals("http://example.com/add1/add2/add3/?q=my+query&return=std&page=1&format=json", r.url)
+
         r = r.path("/add5/")
-        print str(r)
+        self.assertEquals("http://example.com/add5/", r.url)
+
         r = r.path("#add6")
-        print str(r)
+        self.assertEquals("http://example.com/add5/#add6", r.url)
 

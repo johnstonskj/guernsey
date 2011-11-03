@@ -115,7 +115,7 @@ def get_data(filename):
             fp = open(filename, 'rt')
             data = fp.read()
         except:
-            pass
+            logging.debug('Could not open file for reading: ' + filename)
         finally:
             if not fp is None:
                 fp.close()
@@ -126,7 +126,10 @@ def cd(resource, path):
         Resolve path against the current working resource and change
         URL.
     """
-    return resource.path(path)
+    try:
+        return resource.path(path)
+    except:
+        print 'Invalid URL path: ' + path
 add_command(cd)
 
 def pwd(resource, args):
@@ -200,6 +203,8 @@ def get(resource, args):
             try:
                 fp = open(args, 'wb')
                 fp.write(response.entity)
+            except:
+                logging.debug('Could not open file for writing: ' + filename)
             finally:
                 if not fp is None:
                     fp.close()
