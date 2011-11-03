@@ -62,6 +62,10 @@ class Client(object):
             return None
         return datetime(*parsedate(s)[:6])
 
+    def add_basic_auth(realm, uri, user, passwd):
+        global auth_handler
+        auth_handler.add_password(realm, uri, user, passwd)
+
     @classmethod
     def create(cls, config=None, default_filters=None):
         """ Client.create(config, default_filters) -> Client
@@ -463,3 +467,7 @@ class ExecClientFilter(ClientFilter):
         else:
             return ClientResponse(client_request.resource, response, client_request.resource.client)
 
+logging.getLogger('guernsey').debug('Initializing password manager')
+auth_handler = urllib2.HTTPBasicAuthHandler()
+opener = urllib2.build_opener(auth_handler)
+urllib2.install_opener(opener)
