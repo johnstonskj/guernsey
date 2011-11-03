@@ -78,7 +78,8 @@ class ClientResponse(object):
 
         * ``client`` - the client used to configure this response.
         * ``resource`` - the resource used to initiate this response.
-        * ``url``- the URL of the resource retrieved.
+        * ``url``- the URL of the resource retrieved, note that this may be 
+          different from the value requested if redirects were followed..
         * ``entity`` - the original entity, as a binary stream, retrieved.
         * ``status`` - the HTTP status code for this response.
         * ``reason_phrase`` - the HTTP reason phrase for this response.
@@ -280,7 +281,8 @@ class WebResource(object):
             Perform a PUT against the resource associated with the URL
             of this :class:`WebResource`.
         """
-        self.req_entity = entity
+        if not entity is None:
+            self.req_entity = entity
         request = ClientRequest(self, 'PUT')
         return self.handle(request)
 
@@ -289,7 +291,8 @@ class WebResource(object):
             Perform a POST against the resource associated with the URL
             of this :class:`WebResource`.
         """
-        self.req_entity = entity
+        if not entity is None:
+            self.req_entity = entity
         request = ClientRequest(self, 'POST')
         return self.handle(request)
 
