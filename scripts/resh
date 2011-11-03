@@ -8,8 +8,8 @@
 
 from guernsey import Client
 from guernsey.filters import *
-import atexit, os.path, pprint, re, readline, StringIO, subprocess, sys, threading
-
+import atexit, os.path, pprint, re, readline, StringIO
+import subprocess, sys, threading, urlparse
 
 # ------------------------------------------------------------
 # Standard Filter list.
@@ -258,6 +258,24 @@ def filter(resource, args):
             print 'Try filter name=On|Off'
     return resource
 add_command(filter)
+
+def query(resource, args):
+    """ query [query_params]
+        Either display the current query parameters, or set new query
+        parameters.
+    """
+    if args == '':
+        parsed = urlparse.urlparse(resource.url)
+        print parsed.query
+    else:
+        params = args.split('&')
+        param_list = [s.split('=') for s in params]
+        try:
+            resource = resource.query_params(dict(param_list))
+        except:
+            print 'Badly formatted query string: ' + args
+    return resource
+add_command(query)
 
 def set(resource, args):
     """ set [key=value]
