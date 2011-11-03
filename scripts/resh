@@ -15,7 +15,7 @@ import subprocess, sys, threading, urlparse
 # Setup standard logging, this is used to support debug mode.
 # ------------------------------------------------------------
 
-FORMAT = '%(asctime)-15s %(module)s.%(funcName) [%(levelname)s] - %(message)s'
+FORMAT = '%(asctime)-15s %(module)s.%(funcName)s %(lineno)d [%(levelname)s] - %(message)s'
 logging.basicConfig(format=FORMAT)
 logger = logging.getLogger('resh')
 
@@ -252,7 +252,7 @@ def options(resource, args):
     """ options
         Retrieve the options for current resource.
     """
-    response = resource.head()
+    response = resource.options()
     print str(response.status) + ' ' + response.reason_phrase
     pprint.pprint(response.headers)
     if not response.entity is None:
