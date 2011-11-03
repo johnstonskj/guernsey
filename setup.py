@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 import guernsey
 
 setup(name='GuernseyRestClient',
-      version='0.1.1',
+      version='0.2.0',
       description='Guernsey REST Client for Python, based on the Java Jersey API.',
       author='Simon Johnston',
       author_email='simon@johnstonshome.org',
