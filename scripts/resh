@@ -1,0 +1,160 @@
+#!/usr/bin/env python
+
+from guernsey import Client
+import atexit, os.path, pprint, readline, sys
+
+client = Client.create()
+cwr = None
+
+commands = {}
+
+def add_command(cmd, name=None):
+    if name is None:
+        name = cmd.__name__
+    commands[name] = cmd
+
+def command_completer(text, index):
+    try:
+        return [cmd for cmd in commands.iterkeys() if cmd.startswith(text)][index]
+    except IndexError:
+        return None
+
+def cd(path):
+    """ cd path
+        resolve path against the current working resource and change
+        URL.
+    """
+    global cwr
+    cwr = cwr.path(path)
+add_command(cd)
+
+def pwd(args):
+    """ pwd
+        print current target URL.
+    """
+    print cwr.url
+add_command(pwd)
+
+def get(args):
+    """ get
+        Retrieve the current URL entity.
+    """
+    response = cwr.get()
+    print str(response.status) + ' ' + response.reason_phrase
+    if response.status< 300 and not response.entity is None:
+        print response.entity
+add_command(get)
+
+def head(args):
+    """ head
+        Retrieve the current resource headers only.
+    """
+    response = cwr.head()
+    print str(response.status) + ' ' + response.reason_phrase
+    pprint.pprint(response.headers)
+add_command(head)
+
+def delete(args):
+    """ delete
+        Delete the current resource.
+    """
+    response = cwr.delete()
+    print str(response.status) + ' ' + response.reason_phrase
+add_command(delete)
+
+def options(args):
+    """ options
+        Retrieve the options for current resource.
+    """
+    response = cwr.head()
+    print str(response.status) + ' ' + response.reason_phrase
+    pprint.pprint(response.headers)
+    if not response.entity is None:
+        print response.entity
+add_command(options)
+
+def set(args):
+    """ set [key=value]
+        Either display the current request settings, or define a new request
+        setting by providing an HTTP request header key and value.
+    """
+    if args == '':
+        for k in sorted(cwr.headers.iterkeys()):
+            print '%s=%s' % (k, cwr.headers[k])
+    else:
+        equals = args.find('=')
+        if equals > 0:
+            cwr.headers[args[:equals].strip()] = args[equals+1:].strip()
+add_command(set)
+
+def help(args):
+    """ help
+        Display help on built-in shell commands.
+    """
+    for cmd in sorted(commands.iterkeys()):
+        text = commands[cmd].__doc__
+        if text is None:
+            print ' ' + cmd
+        else:
+            print text
+add_command(help)
+
+def exec_command(args):
+    """ exec [command]
+        Execute a command in a sub-shell.
+    """
+    pass
+add_command(exec_command, "!")
+
+def exit(args):
+    """ exit
+        Exit the shell.
+    """
+    pass
+add_command(exit)
+
+def startup():
+    histfile = os.path.join(os.path.expanduser("~"), ".resh_hist")
+    try:
+        readline.set_completer(command_completer)
+        readline.parse_and_bind("tab: complete")
+        readline.parse_and_bind ("bind ^I rl_complete") # OS X hack
+        readline.read_history_file(histfile)
+        atexit.register(readline.write_history_file, histfile)
+    except IOError:
+        pass
+
+def parse_args(args):
+    global cwr
+    cwr = client.resource(args[0])
+ 
+def parse(line):
+    line = line.strip()
+    if line == '':
+        return
+    space = line.find(' ')
+    if space > 0:
+        cmd = line[:space]
+        line = line[space+1:]
+    else:
+        cmd = line
+        line = ''
+    if commands.has_key(cmd):
+        commands[cmd](line)
+    else:
+        print 'Unknown command: ' + cmd
+
+def shell():
+    while True:
+        try:
+            input = raw_input('> ')
+            if input.strip() == 'exit':
+                break
+            parse(input)
+        except EOFError:
+            break
+
+if __name__ == '__main__':
+    startup()
+    parse_args(sys.argv[1:])
+    shell()

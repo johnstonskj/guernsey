@@ -4,7 +4,7 @@
 
 from datetime import datetime
 from email.utils import parsedate
-import mimetools, types, urllib, urllib2, urlparse
+import logging, mimetools, types, urllib, urllib2, urlparse
 try:
     import json
 except:
@@ -260,7 +260,8 @@ class WebResource(object):
             Perform a HEAD against the resource associated with the URL
             of this :class:`WebResource`.
         """
-        return self.execute('HEAD')
+        request = ClientRequest(self, 'HEAD')
+        return self.handle(request)
 
     def put(self, entity=None):
         """ put(entity=None) -> ClientResponse
@@ -268,7 +269,8 @@ class WebResource(object):
             of this :class:`WebResource`.
         """
         self.req_entity = entity
-        return self.execute('PUT')
+        request = ClientRequest(self, 'PUT')
+        return self.handle(request)
 
     def post(self, entity=None):
         """ post(entity=None) -> ClientResponse
@@ -276,21 +278,24 @@ class WebResource(object):
             of this :class:`WebResource`.
         """
         self.req_entity = entity
-        return self.execute('POST')
+        request = ClientRequest(self, 'POST')
+        return self.handle(request)
 
     def delete(self):
         """ delete() -> ClientResponse
             Perform a DELETE against the resource associated with the URL
             of this :class:`WebResource`.
         """
-        return self.execute('DELETE')
+        request = ClientRequest(self, 'DELETE')
+        return self.handle(request)
 
     def options(self):
         """ options() -> ClientResponse
             Perform an OPTIONS against the resource associated with the URL
             of this :class:`WebResource`.
         """
-        return self.execute('OPTIONS')
+        request = ClientRequest(self, 'OPTIONS')
+        return self.handle(request)
 
     def handle(self, client_request):
         """ handle(client_request) -> ClientResponse
@@ -432,13 +437,12 @@ class ExecClientFilter(ClientFilter):
         try:
             response = urllib2.urlopen(request)
         except urllib2.URLError, e:
+            logger = logging.getLogger('guernsey')
             if hasattr(e, 'reason'):
-                print 'We failed to reach a server.'
-                print 'Reason: ', e.reason
+                logger.error('We failed to reach a server. Reason: ', e.reason)
             elif hasattr(e, 'code'):
-                print 'The server couldn\'t fulfill the request.'
-                print 'Error code: ', e.code
-            return None
+                logger.error('The server couldn\'t fulfill the request. Status code: ', e.code)
+            return ClientResponse(client_request.resource, e, client_request.resource.client)
         else:
             return ClientResponse(client_request.resource, response, client_request.resource.client)
 
