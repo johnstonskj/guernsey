@@ -7,7 +7,8 @@ http://code.google.com/p/guernsey/
 Installation
 ------------
 
-To install simply use setuptools.
+To install simply use setuptools. Note this will install the 
+library as well as the 'resh' REST Shell script.
 
   $ python setup.py install
 
@@ -38,3 +39,4 @@ You can also run all the test cases (and yes, I need more) from
 setuptools also.
 
   $ python setup.py test
+
