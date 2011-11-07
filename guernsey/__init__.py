@@ -120,14 +120,14 @@ class Client(Filterable):
 
     def parse_entity(self, client_response):
         for reader in self.entity_classes:
-            if hasattr(reader, 'is_readable') and reader.is_readable(client_response.type):
+            if hasattr(reader, 'is_readable') and not client_response.type is None and reader.is_readable(client_response.type):
                 client_response.parsed_entity = reader.read(client_response.entity, client_response.type)
                 break
         return client_response
 
     def write_entity(self, client_request):
         for writer in self.entity_classes:
-            if hasattr(writer, 'is_writable') and writer.is_writable(client_request.entity, client_request.type):
+            if hasattr(writer, 'is_writable') and not client_request.entity is None and not client_request.type is None and writer.is_writable(client_request.entity, client_request.type):
                 fh = StringIO.StringIO()
                 writer.write(client_request.entity, client_request.type, fh)
                 client_request.entity = fh.getvalue()
@@ -479,9 +479,9 @@ class ExecClientFilter(ClientFilter):
         except urllib2.URLError, e:
             logger = logging.getLogger('guernsey')
             if hasattr(e, 'reason'):
-                logger.error('We failed to reach a server. Reason: ', e.reason)
+                logger.error('We failed to reach a server. Reason: %s' % e.reason)
             elif hasattr(e, 'code'):
-                logger.error('The server couldn\'t fulfill the request. Status code: ', e.code)
+                logger.error('The server couldn\'t fulfill the request. Status code: %d' % e.code)
             return ClientResponse(client_request.resource, e, client_request.resource.client)
         else:
             return ClientResponse(client_request.resource, response, client_request.resource.client)

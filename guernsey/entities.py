@@ -50,6 +50,8 @@ class JsonReader(EntityReader):
         return not json is None and content_type.endswith('/json')
 
     def read(self, raw_entity, content_type):
+        if raw_entity is None or raw_entity.strip() == '':
+            return None
         return json.loads(raw_entity)
 
 
@@ -68,6 +70,8 @@ class XmlReader(EntityReader):
         return False
 
     def read(self, raw_entity, content_type):
+        if raw_entity is None:
+            return None
         return fromstring(raw_entity)
 
 

@@ -74,10 +74,16 @@ class LoggingFilter(ClientFilter):
 
     def handle(self, client_request):
         logger = logging.getLogger(self.log_name)
-        logger.info(client_request.method + ' ' + client_request.url)
+        try:
+            logger.info(client_request.method + ' ' + client_request.url)
+        except:
+            print 'Error writing request to log'
         client_response = client_request.next_filter(self).handle(client_request)
-        logger.info(client_response.url + ' ' + 
-            str(client_response.status)+ ' ' + 
-            client_response.reason_phrase)
+        try:
+            logger.info(client_response.url + ' ' + 
+                str(client_response.status)+ ' ' + 
+                client_response.reason_phrase)
+        except:
+            print 'Error writing response to log'
         return client_response
 
