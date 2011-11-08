@@ -55,7 +55,7 @@ class LoggingFilter(ClientFilter):
         following parameters on construction.
 
         * ``log_name`` - the name to use as the logger name when calling
-          ``logging.getLogger()``; default is 'GuernseyClient'.
+          ``logging.getLogger()``; default is 'guernsey'.
         * ``log_level`` - the level to use when logging; default is
           ``logging.INFO``.
     """
@@ -64,7 +64,7 @@ class LoggingFilter(ClientFilter):
             This will construct a 
         """
         if log_name is None:
-            self.log_name = 'GuernseyClient'
+            self.log_name = 'guernsey'
         else:
             self.log_name = log_name
         if log_level is None:

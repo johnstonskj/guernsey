@@ -100,7 +100,7 @@ class Client(Filterable):
         else:
             self.config = {}
         self.filters = []
-        self.entity_classes = [JsonReader(), JsonWriter()]
+        self.entity_classes = [JsonReader(), JsonWriter(), XmlReader(), XmlWriter()]
         self.actual_client = ExecClientFilter()
 
     def resource(self, url):
@@ -119,6 +119,7 @@ class Client(Filterable):
         return datetime(*parsedate(s)[:6])
 
     def parse_entity(self, client_response):
+        client_response.parsed_entity = None
         for reader in self.entity_classes:
             if hasattr(reader, 'is_readable') and not client_response.type is None and reader.is_readable(client_response.type):
                 client_response.parsed_entity = reader.read(client_response.entity, client_response.type)
