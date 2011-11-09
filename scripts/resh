@@ -6,6 +6,7 @@
 # See LICENSE.txt included in this distribution or more details.
 #
 
+import guernsey
 from guernsey import Client
 from guernsey.filters import *
 import atexit, logging, os.path, pprint, re, readline, StringIO
@@ -17,13 +18,13 @@ import subprocess, sys, threading, urlparse
 
 FORMAT = '%(asctime)-15s %(module)s.%(funcName)s %(lineno)d [%(levelname)s] - %(message)s'
 logging.basicConfig(format=FORMAT)
-logger = logging.getLogger('resh')
+logger = logging.getLogger('guernsey')
 
 # ------------------------------------------------------------
 # Standard Filter list.
 # ------------------------------------------------------------
 
-filters = {'Logging': LoggingFilter('resh'), 'Gzip': GzipContentEncodingFilter(), 'MD5': ContentMd5Filter()}
+filters = {'Logging': LoggingFilter('guernsey'), 'Gzip': GzipContentEncodingFilter(), 'MD5': ContentMd5Filter()}
 
 # ------------------------------------------------------------
 # Command-handling functions.
@@ -427,4 +428,5 @@ if __name__ == '__main__':
     resource = parse_command_line(sys.argv[1:])
     parse_rcfile(resource)
     logger.info('Shell starting up')
+    logger.info('Using Guernsey module: ' + guernsey.__file__)
     run_loop(resource)

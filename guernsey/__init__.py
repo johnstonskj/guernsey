@@ -243,7 +243,7 @@ class WebResource(Filterable):
             based upon the current resource URL with the additional query
             parameters specified in the dictionary added.
         """
-        check = urlparse.urlparse(self.url)
+        check = urlparse.urlparse(self.url, allow_fragments=True)
         if check.query == '':
             query_terms = '?' + urllib.urlencode(dictionary)
         else:
@@ -257,9 +257,27 @@ class WebResource(Filterable):
         """ sub_resource(append_path) -> WebResource
             Construct and return a new :class:`WebResource` whose URL is 
             based upon the current resource URL with the additional path
-            segment resolved against it. 
+            segment appended, note this is not the same as :py:func:`path`
+            which will merge a URL.
+            Note that you should not pass in query or fragments into this
+            method, any value for ``append_path`` that contains either
+            the '#' or '?' character will raise ValueError.
         """
-        return self.path(append_path)
+        if append_path.find('#') >= 0 or append_path.find('?') >= 0:
+            raise ValueError('Invalid value for append_path, appears to include a query or fragment part.')
+        url = urlparse.urlparse(self.url, allow_fragments=True)
+        if url.path.endswith('/'):
+            if append_path.startswith('/'):
+                new_path = url.path + append_path[1:]
+            else:
+                new_path = url.path + append_path
+        else:
+            if append_path.startswith('/'):
+                new_path = url.path + append_path
+            else:
+                new_path = url.path + '/' + append_path
+        new_url = (url.scheme, url.netloc, new_path, url.params, url.query, url.fragment)
+        return WebResource(urlparse.urlunparse(new_url), self.client)
 
     def path(self, append_path):
         """ path(append_path) -> WebResource
