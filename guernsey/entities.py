@@ -56,7 +56,7 @@ class JsonReader(EntityReader):
     def read(self, raw_entity, content_type):
         if raw_entity is None or raw_entity.strip() == '':
             return None
-        logger.info('Parsing input as JSON')
+        logger.debug('Parsing input as JSON')
         return json.loads(raw_entity)
 
 
@@ -77,7 +77,7 @@ class XmlReader(EntityReader):
     def read(self, raw_entity, content_type):
         if raw_entity is None:
             return None
-        logger.info('Parsing input as XML')
+        logger.debug('Parsing input as XML')
         return fromstring(raw_entity)
 
 
