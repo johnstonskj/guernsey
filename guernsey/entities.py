@@ -50,6 +50,7 @@ class EntityWriter(object):
         return to_file
 
 class JsonReader(EntityReader):
+    """ Parse responses from ``application/json`` into Python objects. """
     def is_readable(self, content_type):
         return not json is None and content_type.endswith('/json')
 
@@ -61,6 +62,7 @@ class JsonReader(EntityReader):
 
 
 class JsonWriter(EntityWriter):
+    """ Write Python objects into ``application/json``. """
     def is_writable(self, object, content_type):
         return not json is None and content_type.endswith('/json')
 
@@ -69,6 +71,7 @@ class JsonWriter(EntityWriter):
         return to_file
 
 class XmlReader(EntityReader):
+    """ Parse responses from ``application/xml`` into Python objects. """
     def is_readable(self, content_type):
         if content_type.endswith('/xml') or content_type.endswith('+xml'):
             return True
@@ -82,6 +85,7 @@ class XmlReader(EntityReader):
 
 
 class XmlWriter(EntityWriter):
+    """ Write Python objects into ``application/xml``. """
     def is_writable(self, object, content_type):
         if content_type.endswith('/xml') or content_type.endswith('+xml'):
             if isinstance(object, _ElementInterface) or isinstance(object, ElementTree):

@@ -20,3 +20,7 @@ Standard Reader/Writer Classes
 .. autoclass:: guernsey.entities.JsonReader
 
 .. autoclass:: guernsey.entities.JsonWriter
+
+.. autoclass:: guernsey.entities.XmlReader
+
+.. autoclass:: guernsey.entities.XmlWriter

@@ -29,6 +29,10 @@ class Filterable(object):
         provides the common implementation of a filter list. Note that
         each :class:`WebResource` when constructed will copy its initial
         filters from the client used to create it.
+
+        The class supports the following data members.
+
+        * ``filters`` - the list of filters to execute.
     """
     def __init__(self):
         self.filters = []
@@ -89,6 +93,18 @@ class Client(Filterable):
         responsible for setting up the connection environment and holds
         shared properties used by resource actions. Instances should only
         be created with the :py:func:`create` class method.
+
+        Also, note that the default client will also include an HTTP basic
+        authentication handler which can be configured with user
+        credentials using the :py:func:`add_basic_auth` method.
+
+        The class supports the following data members.
+
+        * ``config`` - the configuration properties provided on construction.
+        * ``entity_classes`` - the set of EntityReader and EntityWriter 
+          objects used to marshall objects to/from Python.
+        * ``filters`` - the default set of filters used to handle actual
+          request/response objects.
     """
     def __init__(self, config):
         """ Client(config)
@@ -101,7 +117,10 @@ class Client(Filterable):
             self.config = {}
         self.filters = []
         self.entity_classes = [JsonReader(), JsonWriter(), XmlReader(), XmlWriter()]
-        self.actual_client = ExecClientFilter()
+        logging.getLogger('guernsey').debug('Initializing password manager')
+        self.auth_handler = urllib2.HTTPBasicAuthHandler()
+        self.opener = urllib2.build_opener(auth_handler)
+        self.actual_client = ExecClientFilter(self.opener)
 
     def resource(self, url):
         """ resource(url) -> WebResource
@@ -119,6 +138,10 @@ class Client(Filterable):
         return datetime(*parsedate(s)[:6])
 
     def parse_entity(self, client_response):
+        """ parse_entity(client_response) -> client_response
+            Parse the data in the response from the server using all the
+            configured entity class handlers.
+        """
         client_response.parsed_entity = None
         for reader in self.entity_classes:
             if hasattr(reader, 'is_readable') and not client_response.type is None and reader.is_readable(client_response.type):
@@ -127,6 +150,10 @@ class Client(Filterable):
         return client_response
 
     def write_entity(self, client_request):
+        """ write_entity(client_request) -> client_request
+            Write the Python data in the request entity using all the
+            configured entity class handlers.
+        """
         for writer in self.entity_classes:
             if hasattr(writer, 'is_writable') and not client_request.entity is None and not client_request.type is None and writer.is_writable(client_request.entity, client_request.type):
                 fh = StringIO.StringIO()
@@ -137,8 +164,11 @@ class Client(Filterable):
         pass
 
     def add_basic_auth(realm, uri, user, passwd):
-        global auth_handler
-        auth_handler.add_password(realm, uri, user, passwd)
+        """ add_basic_auth(realm, uri, user, passwd) 
+            Add the user credentials to the password manager configured
+            for this client.
+        """
+        self.auth_handler.add_password(realm, uri, user, passwd)
 
     @classmethod
     def create(cls, config=None, default_filters=None):
@@ -483,6 +513,9 @@ class ExecClientFilter(ClientFilter):
         styled as a filter and guaranteed to be the last filter executed
         as it does not pass on the request to any next filter.
     """
+    def __init__(self, opener):
+        self.opener = opener
+
     def handle(self, client_request):
         """ handle(client_request) -> ClientResponse
             This is where the real HTTP stuff happens.
@@ -494,7 +527,7 @@ class ExecClientFilter(ClientFilter):
         for k, v in client_request.resource.headers.iteritems():
             request.add_header(k, v)
         try:
-            response = urllib2.urlopen(request)
+            response = self.opener.open(request)
         except urllib2.URLError, e:
             logger = logging.getLogger('guernsey')
             if hasattr(e, 'reason'):
@@ -505,7 +538,3 @@ class ExecClientFilter(ClientFilter):
         else:
             return ClientResponse(client_request.resource, response, client_request.resource.client)
 
-logging.getLogger('guernsey').debug('Initializing password manager')
-auth_handler = urllib2.HTTPBasicAuthHandler()
-opener = urllib2.build_opener(auth_handler)
-urllib2.install_opener(opener)
