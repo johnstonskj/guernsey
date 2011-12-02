@@ -19,6 +19,11 @@ Contents:
    filters
    entities
 
+   building
+
+For more information, including downloads, see the project home page
+at `Google Code <http://code.google.com/p/guernsey/>`_.
+
 Indices and tables
 ==================
 
