@@ -119,7 +119,7 @@ class Client(Filterable):
         self.entity_classes = [JsonReader(), JsonWriter(), XmlReader(), XmlWriter()]
         logging.getLogger('guernsey').debug('Initializing password manager')
         self.auth_handler = urllib2.HTTPBasicAuthHandler()
-        self.opener = urllib2.build_opener(auth_handler)
+        self.opener = urllib2.build_opener(self.auth_handler)
         self.actual_client = ExecClientFilter(self.opener)
 
     def resource(self, url):
