@@ -52,6 +52,8 @@ class EntityWriter(object):
 class JsonReader(EntityReader):
     """ Parse responses from ``application/json`` into Python objects. """
     def is_readable(self, content_type):
+        if content_type.find(';') >= 0:
+            content_type = content_type[:content_type.find(';')]
         return not json is None and content_type.endswith('/json')
 
     def read(self, raw_entity, content_type):
@@ -64,6 +66,8 @@ class JsonReader(EntityReader):
 class JsonWriter(EntityWriter):
     """ Write Python objects into ``application/json``. """
     def is_writable(self, object, content_type):
+        if content_type.find(';') >= 0:
+            content_type = content_type[:content_type.find(';')]
         return not json is None and content_type.endswith('/json')
 
     def write(self, object, content_type, to_file):
@@ -73,6 +77,8 @@ class JsonWriter(EntityWriter):
 class XmlReader(EntityReader):
     """ Parse responses from ``application/xml`` into Python objects. """
     def is_readable(self, content_type):
+        if content_type.find(';') >= 0:
+            content_type = content_type[:content_type.find(';')]
         if content_type.endswith('/xml') or content_type.endswith('+xml'):
             return True
         return False
@@ -87,6 +93,8 @@ class XmlReader(EntityReader):
 class XmlWriter(EntityWriter):
     """ Write Python objects into ``application/xml``. """
     def is_writable(self, object, content_type):
+        if content_type.find(';') >= 0:
+            content_type = content_type[:content_type.find(';')]
         if content_type.endswith('/xml') or content_type.endswith('+xml'):
             if isinstance(object, _ElementInterface) or isinstance(object, ElementTree):
                 return True

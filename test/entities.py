@@ -8,9 +8,33 @@ import logging, StringIO, unittest
 
 from xml.etree.ElementTree import _ElementInterface, Element, ElementTree
 
+from guernsey import Client
 from guernsey.entities import *
 
 class TestBuiltinEntityClasses(unittest.TestCase):
+
+    def testJsonReaderLive(self):
+        client = Client.create()
+        query = dict(
+          q="select * from csv where url='http://download.finance.yahoo.com/d/quotes.csv?s=INFY.BO,RELIANCE.NS,TCS.BO&f=sl1d1t1c1ohgv&e=.csv' and columns='symbol,price,date,time,change,col1,high,low,col2'",
+          format='json'
+        )
+        stock_resource = client.resource('http://query.yahooapis.com/v1/public/yql').query_params(query).accept('application/json')
+        stock_data = stock_resource.get()
+        self.assertTrue(not stock_data.entity is None)
+        self.assertTrue(not stock_data.parsed_entity is None)
+        self.assertTrue(stock_data.parsed_entity.has_key('query'))
+
+    def testXmlReaderLive(self):
+        client = Client.create()
+        query = dict(
+          q="select * from csv where url='http://download.finance.yahoo.com/d/quotes.csv?s=INFY.BO,RELIANCE.NS,TCS.BO&f=sl1d1t1c1ohgv&e=.csv' and columns='symbol,price,date,time,change,col1,high,low,col2'",
+          format='xml'
+        )
+        stock_resource = client.resource('http://query.yahooapis.com/v1/public/yql').query_params(query).accept('application/xml')
+        stock_data = stock_resource.get()
+        self.assertTrue(not stock_data.entity is None)
+        self.assertTrue(not stock_data.parsed_entity is None)
 
     def testJsonReaderIsReadable(self):
         test = JsonReader()
