@@ -16,12 +16,19 @@ class RequestWithMethod(urllib2.Request):
         simple addition so that we can use this efficiently.
     """
     def __init__(self, method, *args, **kwargs):
-        """ request = RequestWithMethod('PUT', url=_url) """
+        """ RequestWithMethod(method, args, kwargs) -> object
+            Construct a new request for urllib2 but with a specified
+            HTTP method.
+        """
         self._method = method
         urllib2.Request.__init__(self, *args, **kwargs)
 
     def get_method(self):
-        """ return the method provided in the initializer """
+        """ get_method() -> string
+            Return the method provided in the initializer.
+
+            :rtype: string
+        """
         return self._method
 
 class Filterable(object):
@@ -38,10 +45,15 @@ class Filterable(object):
         self.filters = []
 
     def add_filter(self, filter):
-        """ add_filter(filter) -> WebResource
+        """ add_filter(filter) -> Filterable
             Add a filter to the chain for this resource, note that filters
             are always added to the head of the chain, so effectively the
             chain acts as a stack.
+
+            :type filter: :class:`ClientFilter`
+            :param filter: a new filter to add to the list of filters on 
+                this object. Note that filters may only be added once.
+            :rtype: :class:`Filterable`
         """
         if not self.is_filter_present(filter):
             self.filters.insert(0, filter)
@@ -50,12 +62,9 @@ class Filterable(object):
     def head_filter(self):
         """ head_filter() -> ClientFilter
             Return the first filter in the filter chain defined for this
-            resource. 
+            object. 
 
-            Note that Guernsey copies the resource's filter chain
-            to the :class:`ClientRequest` when the request is handled and
-            so this only works against the chain before it is copied to 
-            the request.
+            :rtype: :class:`ClientFilter`
         """
         if len(self.filters) > 0:
             return self.filters[0]
@@ -65,25 +74,24 @@ class Filterable(object):
     def is_filter_present(self, filter):
         """ is_filter_present(filter) -> boolean
             Returns ``True`` if the specified filter is in the chain for
-            this resource.
+            this object.
 
-            Note that Guernsey copies the resource's filter chain
-            to the :class:`ClientRequest` when the request is handled and
-            so this only works against the chain before it is copied to 
-            the request.
+            :type filter: :class:`ClientFilter`
+            :param filter: the filter to check for.
+            :rtype: Boolean
         """
         return len([f for f in self.filters if f == filter]) > 0
         return self
 
     def remove_filter(self, filter):
-        """ remove_filter(filter) -> WebResource
+        """ remove_filter(filter) -> Filterable
             Remove the identified filter from the filter chain for this
-            resource.
+            object.
 
-            Note that Guernsey copies the resource's filter chain
-            to the :class:`ClientRequest` when the request is handled and
-            so this only works against the chain before it is copied to 
-            the request.
+            :type filter: :class:`ClientFilter`
+            :param filter: the filter to remove from the list of filters
+                for this object.
+            :rtype: :class:`Filterable`
         """
         self.filters.remove(filter)
         return self
@@ -110,6 +118,10 @@ class Client(Filterable):
         """ Client(config)
             A caller should not instantiate a Client object directly, 
             they should only use Client.create()
+
+            :type config: dict
+            :param config: a dictionary containing any overridable 
+                property values.
         """
         if type(config) == types.DictType:
             self.config = config
@@ -125,9 +137,15 @@ class Client(Filterable):
     def resource(self, url, parameters=None):
         """ resource(url, parameters=None) -> WebResource
             This will construct a new :class:`WebResource` with the specified URL.
-            If ``parameters`` is specified, and is a dictionary, then treat the
-            ``url`` as a template containing strings of the form "{key}" to be 
-            replaced with values from the dictionary.
+
+            :type url: string
+            :param url: the URL for the new resource, this MUST be an absolute URL.
+
+            :type parameters: dict
+            :param parameters: If ``parameters`` is specified then treat the
+                ``url`` as a template containing strings of the form "{key}" to be 
+                replaced with values from the dictionary.
+            :rtype: :class:`WebResource`
         """
         if isinstance(parameters, dict):
             url = url.replace('{', '%(').replace('}', ')s')
@@ -136,17 +154,27 @@ class Client(Filterable):
 
     def parse_http_date(self, s):
         """ parse_http_date(string) -> datetime
-            Return a datetime value parsed from the standard HTTP 
-            Date/Time representation.
+            Return a datetime value parsed from the standard HTTP Date/Time 
+            representation.
+
+            :type s: string
+            :param s: A string representation of a date/time value.
+            :rtype: datetime.datetime
         """
         if s is None:
             return None
         return datetime(*parsedate(s)[:6])
 
     def parse_entity(self, client_response):
-        """ parse_entity(client_response) -> client_response
+        """ parse_entity(client_response) -> ClientResponse
             Parse the data in the response from the server using all the
-            configured entity class handlers.
+            configured entity class handlers. Will return a new response
+            with any modification, usually this only sets the value of
+            the ``parsed_entity`` property.
+
+            :type client_response: :class:`ClientResponse`
+            :param client_response: The response from the server itself.
+            :rtype: :class:`ClientResponse`
         """
         client_response.parsed_entity = None
         for reader in self.entity_classes:
@@ -156,9 +184,14 @@ class Client(Filterable):
         return client_response
 
     def write_entity(self, client_request):
-        """ write_entity(client_request) -> client_request
+        """ write_entity(client_request) -> ClientRequest
             Write the Python data in the request entity using all the
             configured entity class handlers.
+
+            :type client_request: :class:`ClientRequest`
+            :param client_request: the request to modify before sending
+                to the server.
+            :rtype: :class:`ClientRequest`
         """
         for writer in self.entity_classes:
             if hasattr(writer, 'is_writable') and not client_request.entity is None and not client_request.type is None and writer.is_writable(client_request.entity, client_request.type):
@@ -169,18 +202,32 @@ class Client(Filterable):
         return client_response
         pass
 
-    def add_basic_auth(realm, uri, user, passwd):
-        """ add_basic_auth(realm, uri, user, passwd) 
+    def add_basic_auth(realm, url, user, passwd):
+        """ add_basic_auth(realm, url, user, passwd) 
             Add the user credentials to the password manager configured
             for this client.
+
+            :type realm: string
+            :param realm: The HTTP realm that scopes the authentication.
+            :type url: string
+            :param url: The URL that scopes the authentication.
+            :type user: string
+            :param user: The user name to authenticate.
+            :type passwd: string
+            :param passwd: The user password to authenticate.
         """
-        self.auth_handler.add_password(realm, uri, user, passwd)
+        self.auth_handler.add_password(realm, url, user, passwd)
 
     @classmethod
     def create(cls, config=None, default_filters=None):
         """ Client.create(config) -> Client
             Create a new client instance, this is the primary entry point
             for the library.
+
+            :type config: dict
+            :param config: a dictionary of configuration values to override
+                the default behavior of the client.
+            :rtype: :class:`Client`
         """
         return Client(config)
 
@@ -213,6 +260,10 @@ class ClientResponse(object):
             construct a new response from the actual underlying HTTP response
             object. Also track the resource that created this response and
             the client.
+
+            :type resource: :class:`WebResource`
+            :param resource: The resource that generated this response.
+            :param response: The underlying HTTP response.
         """
         self.resource = resource
         self.client = client
@@ -251,6 +302,13 @@ class WebResource(Filterable):
             rather they should use the ``create`` method on :class:`Client`
             of the :py:func:`path`, :py:func:`sub_resource`, or 
             :py:func:`query_params` methods on an existing resource.
+
+            :type url: string
+            :param url: The absolute URL for the resource.
+            :type client: :class:`Client`
+            :param client: The client object to use for this resource.
+            :rtype: WebResource
+            :raises: ValueError if the URL is not absolute.
         """
         self.url = url
         check = urlparse.urlparse(url)
@@ -266,6 +324,8 @@ class WebResource(Filterable):
             This will return a copy of the current resource with no shared data,
             specifically will copy ``url``, ``filters``, ``headers`` and 
             ``req_entity``.
+
+            :rtype: :class:`WebResource`
         """
         r2 = WebResource(self.url, self.client)
         r2.filters = self.filters[:]
@@ -273,11 +333,16 @@ class WebResource(Filterable):
         r2.req_entity = copy.deepcopy(self.req_entity)
         return r2
 
-    def query_params(self, dictionary):
-        """ query_params(dictionary) -> WebResource
+    def query_params(self, params):
+        """ query_params(params) -> WebResource
             Construct and return a new :class:`WebResource` whose URL is 
             based upon the current resource URL with the additional query
             parameters specified in the dictionary added.
+
+            :type params: dict
+            :params params: A dictionary of query parameters to serialize
+                into the resource URL query segment.
+            :rtype: WebResource
         """
         check = urlparse.urlparse(self.url, allow_fragments=True)
         if check.query == '':
@@ -295,9 +360,16 @@ class WebResource(Filterable):
             based upon the current resource URL with the additional path
             segment appended, note this is not the same as :py:func:`path`
             which will merge a URL.
+
             Note that you should not pass in query or fragments into this
             method, any value for ``append_path`` that contains either
             the '#' or '?' character will raise ValueError.
+
+            :type append_path: string
+            :param append_path: A path segment to append directly to the 
+                current resource URL.
+            :rtype: WebResource
+            :raises: ValueError if append_path contains '#' or '?'.
         """
         if append_path.find('#') >= 0 or append_path.find('?') >= 0:
             raise ValueError('Invalid value for append_path, appears to include a query or fragment part.')
@@ -321,6 +393,14 @@ class WebResource(Filterable):
             based upon the current resource URL with the additional path
             segment resolved against it. This method also takes a 
             parameter dictionary to allow for templated paths.
+
+            :type relative_path: string
+            :param relative_path: A path segment to resolve against the current
+                resource URL.
+            :type parameters: dict
+            :param parameters: A dictionary of template parameter values, if
+                specified we assume that the relative_path is a template URL.
+            :rtype: WebResource
         """
         if isinstance(parameters, dict):
             relative_path = relative_path.replace('{', '%(').replace('}', ')s')
@@ -332,6 +412,16 @@ class WebResource(Filterable):
             Add a custom header to the resource, all headers will be sent
             when the request for this resource is handled. This method will
             return the current resource.
+
+            :type name: string
+            :param name: The name of the header to add.
+            :type value: string
+            :param value: The value to add for this header.
+            :type append: Boolean
+            :param append: If ``False`` then replace any existing value for
+                this header with the new value; else append to the existing
+                value.
+            :rtype: WebResource
         """
         if append and name in self.headers:
             self.headers[name] = "%s, %s" % (self.headers[name], value)
@@ -345,6 +435,13 @@ class WebResource(Filterable):
             HTTP ``Accepts`` request header, note that the quality
             parameter is optional but should be a simple decimal
             value.
+
+            :type content_type: string
+            :param content_type: A MIME type string.
+            :type quality: real
+            :param quality: A number between 0.0 and 1.0 to indicate the weight
+                of the content_type.
+            :rtype: WebResource
         """
         if not quality is None:
             content_type = "%s; q=%s" % (content_type, quality)
@@ -355,6 +452,10 @@ class WebResource(Filterable):
         """ accept_encoding(encoding) -> WebResource
             Add to the list of values in the HTTP ``Accept-Encoding`` 
             request header.
+
+            :type encoding: string
+            :param encoding: An encoding value to add.
+            :rtype: WebResource
         """
         self.add_header('Accept-Language', language, True)
         return self
@@ -363,6 +464,10 @@ class WebResource(Filterable):
         """ accept_language(language) -> WebResource
             Add to the list of values in the HTTP ``Accept-Language`` 
             request header.
+
+            :type language: string
+            :param language: A language value to add.
+            :rtype: WebResource
         """
         self.add_header('Accept-Language', language, True)
         return self
@@ -370,6 +475,10 @@ class WebResource(Filterable):
     def encoding(self, encoding):
         """ encoding(encoding) -> WebResource
             Set the value of the HTTP ``Content-Encoding`` request header.
+
+            :type encoding: string
+            :param encoding: An encoding value to add.
+            :rtype: WebResource
         """
         self.add_header('Content-Type', content_type)
         return self
@@ -377,6 +486,10 @@ class WebResource(Filterable):
     def language(self, language):
         """ language(language) -> WebResource
             Set the value of the HTTP ``Content-Language`` request header.
+
+            :type language: string
+            :param language: A language value to add.
+            :rtype: WebResource
         """
         self.add_header('Content-Type', content_type)
         return self
@@ -384,21 +497,32 @@ class WebResource(Filterable):
     def type(self, content_type):
         """ type(content_type) -> WebResource
             Set the value of the HTTP ``Content-Type`` request header.
+
+            :type content_type: string
+            :param content_type: A MIME type value to add.
+            :rtype: WebResource
         """
         self.add_header('Content-Type', content_type)
         return self
 
     def entity(self, req_entity):
-        """ entity() -> data
+        """ entity() -> WebResource
             Set the data to be sent to the REST service as the entity body
             with this request.
+
+            :type req_entity: string
+            :param req_entity: An Entity type value to add.
+            :rtype: WebResource
         """
         self.req_entity = req_entity
+        return self
 
     def get(self):
         """ get() -> ClientResponse
             Perform a GET against the resource associated with the URL
             of this :class:`WebResource`.
+
+            :rtype: :class:`ClientResponse`
         """
         request = ClientRequest(self, 'GET')
         return self.handle(request)
@@ -407,6 +531,8 @@ class WebResource(Filterable):
         """ head() -> ClientResponse
             Perform a HEAD against the resource associated with the URL
             of this :class:`WebResource`.
+
+            :rtype: :class:`ClientResponse`
         """
         request = ClientRequest(self, 'HEAD')
         return self.handle(request)
@@ -415,6 +541,11 @@ class WebResource(Filterable):
         """ put(entity=None) -> ClientResponse
             Perform a PUT against the resource associated with the URL
             of this :class:`WebResource`.
+
+            :type entity: string
+            :param entity: The entity to send to the server, if not specified
+                any value set by the :py:func:`entity` will be used.
+            :rtype: :class:`ClientResponse`
         """
         if not entity is None:
             self.req_entity = entity
@@ -425,6 +556,11 @@ class WebResource(Filterable):
         """ post(entity=None) -> ClientResponse
             Perform a POST against the resource associated with the URL
             of this :class:`WebResource`.
+
+            :type entity: string
+            :param entity: The entity to send to the server, if not specified
+                any value set by the :py:func:`entity` will be used.
+            :rtype: :class:`ClientResponse`
         """
         if not entity is None:
             self.req_entity = entity
@@ -435,6 +571,8 @@ class WebResource(Filterable):
         """ delete() -> ClientResponse
             Perform a DELETE against the resource associated with the URL
             of this :class:`WebResource`.
+
+            :rtype: :class:`ClientResponse`
         """
         request = ClientRequest(self, 'DELETE')
         return self.handle(request)
@@ -443,6 +581,8 @@ class WebResource(Filterable):
         """ options() -> ClientResponse
             Perform an OPTIONS against the resource associated with the URL
             of this :class:`WebResource`.
+
+            :rtype: :class:`ClientResponse`
         """
         request = ClientRequest(self, 'OPTIONS')
         return self.handle(request)
@@ -453,6 +593,10 @@ class WebResource(Filterable):
             return the client response. This method will invoke all the
             filters defined for this resource and will execute the HTTP
             logic at the end of the filter chain before returning.
+
+            :type client_request: :class:`ClientRequest`
+            :param client_request: The request to make to the server.
+            :rtype: :class:`ClientResponse`
         """
         client_request.set_filters(self.filters + [self.client.actual_client]);
         final_response = client_request.filters[0].handle(client_request)
@@ -491,6 +635,10 @@ class ClientRequest(object):
             filter chain for this request. Note that the filter chain
             is copied from the resource when the request is created to
             ensure it cannot be changed.
+
+            :type filter: :class:`ClientFilter`
+            :param filter: The current filter.
+            :rtype: :class:`ClientFilter`
         """
         next = self.filters.index(filter)+1
         if next > len(self.filters):
@@ -508,6 +656,17 @@ class ClientFilter(object):
         model allows for a single filter to affect both request and 
         response while ensuring it is placed at the same location in the
         chain for both operations.
+
+        The basic structure of a filter is therefore::
+
+          class MyFilter(ClientFilter):
+              def handle(self, client_request):
+                  # look at the request
+                  # modify the request if needed
+                  rsp = client_request.next_filter(self).handle(client_request)
+                  # look at the response
+                  # modify the response if needed
+                  return rsp
     """
     def handle(self, client_request):
         """ handle(client_request) -> ClientResponse
@@ -515,6 +674,11 @@ class ClientFilter(object):
             ensure that you call ``handle()`` on the next filter in 
             the chain from ``client_request.next_filter(self)`` so that
             the chain remains unbroken.
+
+            :type client_request: :class:`ClientRequest`
+            :param client_request: The request to process, pass this to 
+                the next filter in the chain.
+            :rtype: :class:`ClientResponse`
         """
         return client_request.next_filter(self).handle(client_request)
 

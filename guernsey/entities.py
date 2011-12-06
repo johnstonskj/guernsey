@@ -22,12 +22,22 @@ class EntityReader(object):
         """ is_readable(content_type) -> boolean
             Return whether this reader can read an object serialized
             with the specified MIME content type.
+
+            :type content_type: string
+            :param content_type: The MIME type of the resource.
+            :rtype: Boolean
         """
         return False
 
     def read(self, entity, content_type):
         """ read(entity, content_type) -> object
             Read and parse the entity and return an object representation.
+
+            :type entity: string
+            :param entity: The entity itself to parse.
+            :type content_type: string
+            :param content_type: The MIME type of the resource.
+            :rtype: object
         """
         return None
 
@@ -39,6 +49,10 @@ class EntityWriter(object):
         """ is_writable(object, content_type) -> boolean
             Return whether this writer can write the specified object
             serialized according to the MIME content type.
+
+            :type content_type: string
+            :param content_type: The MIME type of the resource.
+            :rtype: Boolean
         """
         return False
 
@@ -46,6 +60,13 @@ class EntityWriter(object):
         """ write(object, content_type, to_file) -> file
             Write the object to the file-like object according to 
             the specified MIME content type.
+
+            :type object: object
+            :param object: The Python object to serialize.
+            :type content_type: string
+            :param content_type: The MIME type of the resource.
+            :type to_file: object
+            :param to_file: The File object to write the serialized form into.
         """
         return to_file
 

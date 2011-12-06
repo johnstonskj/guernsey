@@ -4,8 +4,11 @@ Guernsey Request/Response Filter Module
 .. automodule:: guernsey.filters
 
 This module provides a set of useful filters that can be applied
-to resources to add additional HTTP behavior to clients. Where 
-possible any behavior not core to the HTTP protocol will be 
+to resources to add additional HTTP behavior to clients. All of
+these filters rely are subclasses of :class:`guernsey.ClientFilter`
+which defines their interface.
+
+Where possible any behavior not core to the HTTP protocol will be 
 factored into one or more filters rather than add to either the
 :class:`Client` or :class:`WebResource` classes.
 
