@@ -18,6 +18,22 @@ class TestPathConstruction(unittest.TestCase):
         except ValueError:
             print 'checking URL check - OK'
 
+    def testTemplatedResource(self):
+        c = Client.create()
+        p = dict(service='addressbook', resource='person', id='simon', view='card')
+        r = c.resource('http://example.com/{service}/{resource}/{id}', p)
+        self.assertEquals("http://example.com/addressbook/person/simon", r.url)
+
+    def testBadTemplatedResource(self):
+        p = dict(service='addressbook', id='simon', view='card')
+        c = Client.create()
+        try:
+            r = c.resource('http://example.com/{service}/{resource}/{id}', p)
+            self.fail('"foo" should have failed because of missing template key')
+        except KeyError:
+            print 'checking template check - OK'
+        
+
     def testPathMethod(self):
         c = Client.create()
         r = c.resource("http://example.com/base")

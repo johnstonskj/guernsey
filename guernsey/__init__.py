@@ -122,10 +122,16 @@ class Client(Filterable):
         self.opener = urllib2.build_opener(self.auth_handler)
         self.actual_client = ExecClientFilter(self.opener)
 
-    def resource(self, url):
-        """ resource(url) -> WebResource
+    def resource(self, url, parameters=None):
+        """ resource(url, parameters=None) -> WebResource
             This will construct a new :class:`WebResource` with the specified URL.
+            If ``parameters`` is specified, and is a dictionary, then treat the
+            ``url`` as a template containing strings of the form "{key}" to be 
+            replaced with values from the dictionary.
         """
+        if isinstance(parameters, dict):
+            url = url.replace('{', '%(').replace('}', ')s')
+            url = url % parameters
         return WebResource(url, self)
 
     def parse_http_date(self, s):
