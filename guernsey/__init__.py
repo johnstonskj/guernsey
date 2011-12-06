@@ -315,13 +315,17 @@ class WebResource(Filterable):
         new_url = (url.scheme, url.netloc, new_path, url.params, url.query, url.fragment)
         return WebResource(urlparse.urlunparse(new_url), self.client)
 
-    def path(self, append_path):
-        """ path(append_path) -> WebResource
+    def path(self, relative_path, parameters=None):
+        """ path(relative_path, parameters=None) -> WebResource
             Construct and return a new :class:`WebResource` whose URL is 
             based upon the current resource URL with the additional path
-            segment resolved against it. 
+            segment resolved against it. This method also takes a 
+            parameter dictionary to allow for templated paths.
         """
-        return WebResource(urlparse.urljoin(self.url, append_path, True), self.client)
+        if isinstance(parameters, dict):
+            relative_path = relative_path.replace('{', '%(').replace('}', ')s')
+            relative_path = relative_path % parameters
+        return WebResource(urlparse.urljoin(self.url, relative_path, True), self.client)
 
     def add_header(self, name, value, append=False):
         """ add_header(name, value, append=False) -> WebResource
