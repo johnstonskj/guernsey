@@ -1,7 +1,11 @@
 Guernsey REST Client
 ====================
 
-Copyright (c) 2011 Simon Johnston (simon@johnstonshome.org)
+This is a REST service client library for Python, it is based on the Jersey client for Java.
+
+See http://jersey.java.net/nonav/documentation/latest/user-guide.html#client-api
+
+Copyright (c) 2011 Simon Johnston (johnstonskj@gmail.com)
 http://code.google.com/p/guernsey/
 
 Installation
