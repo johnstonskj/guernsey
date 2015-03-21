@@ -7,10 +7,30 @@ Copyright (c) 2011-2015 Simon Johnston (johnstonskj@gmail.com)
 
 # Example Usage
 
+The following example shows a simple GET method on a remote REST service, note that a lot of the setup here is shown for completeness (setting up logging and adding filters), not really required in this example.
+
 ```python
 import guernsey
 from guernsey import Client
-from guernsey.filters import *```
+from guernsey.filters import *
+
+FORMAT = '%(asctime)-15s %(module)s.%(funcName)s %(lineno)d [%(levelname)s] - %(message)s'
+logging.basicConfig(format=FORMAT)
+logger = logging.getLogger('guernsey')
+
+filters = {'Logging': LoggingFilter('guernsey'), 'Gzip': GzipContentEncodingFilter(), 'MD5': ContentMd5Filter()}
+
+client = Client.create()
+client.resource('http://myservice.com')
+
+response = resource.get()
+print str(response.status) + ' ' + response.reason_phrase
+
+if not response.parsed_entity is None:
+    pprint.pprint(response.parsed_entity)
+else:
+    print response.entity
+```
 
 # Installation
 
