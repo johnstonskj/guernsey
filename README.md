@@ -2,13 +2,12 @@
 
 This is a REST service client library for Python, it is based on the [Jersey client](http://jersey.java.net/nonav/documentation/latest/user-guide.html#client-api) for Java.
 
-Copyright (c) 2011 Simon Johnston (johnstonskj@gmail.com)
+Copyright (c) 2011-2015 Simon Johnston (johnstonskj@gmail.com)
 <https://github.com/johnstonskj/guernsey>
 
 # Installation
 
-To install simply use setuptools. Note this will install the 
-library as well as the 'resh' REST Shell script.
+To install simply use setuptools. Note this will install the library as well as the 'resh' REST Shell script.
 
 ```zsh
   $ python setup.py install
@@ -16,7 +15,7 @@ library as well as the 'resh' REST Shell script.
 
 # Generating Documentation
 
-To generate the API documentation simply ensure you have installed Sphinx
+To generate the API documentation simply ensure you have installed [Sphinx](http://sphinx-doc.org/).
 
 ```zsh
   $ easy_install -U Sphinx
