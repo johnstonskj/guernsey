@@ -5,6 +5,13 @@ This is a REST service client library for Python, it is based on the [Jersey cli
 Copyright (c) 2011-2015 Simon Johnston (johnstonskj@gmail.com)
 <https://github.com/johnstonskj/guernsey>
 
+# Example Usage
+
+```python
+import guernsey
+from guernsey import Client
+from guernsey.filters import *```
+
 # Installation
 
 To install simply use setuptools. Note this will install the library as well as the 'resh' REST Shell script.
